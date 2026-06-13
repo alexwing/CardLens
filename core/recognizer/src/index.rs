@@ -7,6 +7,8 @@
 //! en movil (unidades de milisegundos) y no requiere ninguna dependencia
 //! nativa, lo que la hace trivial de cross-compilar a Android.
 
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 
 /// Normaliza un vector a longitud unidad (L2) in situ.
@@ -130,6 +132,42 @@ impl FlatIndex {
                 score,
             })
             .collect())
+    }
+}
+
+impl FlatIndex {
+    /// Persiste el indice: vectores en un .bin (f32 little-endian, fila-mayor)
+    /// y metadatos en un .json. Formato propio, sin dependencias nativas, que
+    /// el reconocedor lee on-device (reemplaza al .index de FAISS).
+    pub fn save(&self, bin_path: &Path, cards_path: &Path) -> anyhow::Result<()> {
+        let mut bytes = Vec::with_capacity(self.vectors.len() * 4);
+        for value in &self.vectors {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        std::fs::write(bin_path, &bytes)?;
+        std::fs::write(cards_path, serde_json::to_vec(&self.cards)?)?;
+        Ok(())
+    }
+
+    /// Carga un indice guardado con `save`. La dimension se deduce de
+    /// longitud(vectores) / numero(cartas).
+    pub fn load(bin_path: &Path, cards_path: &Path) -> anyhow::Result<Self> {
+        let cards: Vec<CardRef> = serde_json::from_slice(&std::fs::read(cards_path)?)?;
+        anyhow::ensure!(!cards.is_empty(), "el indice no tiene cartas");
+        let bytes = std::fs::read(bin_path)?;
+        anyhow::ensure!(bytes.len() % 4 == 0, "el .bin del indice esta corrupto");
+        let vectors: Vec<f32> = bytes
+            .chunks_exact(4)
+            .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+            .collect();
+        anyhow::ensure!(
+            vectors.len() % cards.len() == 0,
+            "vectores ({}) no son multiplo de num_cartas ({})",
+            vectors.len(),
+            cards.len()
+        );
+        let dim = vectors.len() / cards.len();
+        FlatIndex::new(dim, vectors, cards)
     }
 }
 

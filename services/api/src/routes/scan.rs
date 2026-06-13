@@ -1,14 +1,15 @@
-//! POST /api/scan: guarda la foto, llama al servicio ML, enriquece candidatos
-//! con el catalogo y persiste el resultado.
+//! POST /api/scan: guarda la foto, la reconoce on-device (Rust), enriquece
+//! los candidatos con el catalogo y persiste el resultado.
 
 use anyhow::Context;
 use axum::extract::{Multipart, State};
 use axum::Json;
 use chrono::Utc;
+use serde_json::json;
 use uuid::Uuid;
 
+use crate::engine::EngineCandidate;
 use crate::error::ApiError;
-use crate::ml_client::MlCandidate;
 use crate::models::{BestMatch, CandidateResponse, Card, ScanResponse};
 use crate::AppState;
 
@@ -44,15 +45,35 @@ pub async fn create_scan(
     tokio::fs::write(&absolute_path, &image_bytes)
         .await
         .with_context(|| format!("no se pudo guardar la imagen en {}", absolute_path.display()))?;
-    // Ruta persistida relativa a la raiz del repo (portable entre maquinas).
     let image_path = format!("data/scans/{file_name}");
     let created_at = Utc::now().to_rfc3339();
 
-    // 3. Llamar al servicio ML.
-    let (ml, raw_json) = match state.ml.analyze(image_bytes, &file_name).await {
-        Ok(result) => result,
+    // 3. Reconocimiento on-device. Sin motor (modo degradado) -> respuesta vacia.
+    let engine = match &state.engine {
+        Some(engine) => engine,
+        None => {
+            sqlx::query(
+                "INSERT INTO scans (id, created_at, image_path, status, low_confidence) \
+                 VALUES (?1, ?2, ?3, 'done', 1)",
+            )
+            .bind(&scan_id)
+            .bind(&created_at)
+            .bind(&image_path)
+            .execute(&state.pool)
+            .await?;
+            return Ok(Json(ScanResponse {
+                scan_id,
+                low_confidence: true,
+                best: None,
+                candidates: Vec::new(),
+            }));
+        }
+    };
+
+    let analysis = match engine.analyze(image_bytes).await {
+        Ok(analysis) => analysis,
         Err(error) => {
-            // Persistencia best-effort del intento fallido y 502 al cliente.
+            // Persistencia best-effort del intento fallido y 500 al cliente.
             let _ = sqlx::query(
                 "INSERT INTO scans (id, created_at, image_path, status, low_confidence) \
                  VALUES (?1, ?2, ?3, 'error', 1)",
@@ -62,19 +83,17 @@ pub async fn create_scan(
             .bind(&image_path)
             .execute(&state.pool)
             .await;
-            return Err(ApiError::MlUnavailable(format!(
-                "el servicio ML no responde: {error}"
-            )));
+            return Err(ApiError::Internal(error.context("fallo de reconocimiento")));
         }
     };
 
     // 4. Enriquecer cada candidato con metadata del catalogo (cards JOIN sets).
-    let mut enriched: Vec<(Card, MlCandidate)> = Vec::with_capacity(ml.candidates.len());
-    for candidate in &ml.candidates {
+    let mut enriched: Vec<(Card, &EngineCandidate)> = Vec::with_capacity(analysis.candidates.len());
+    for candidate in &analysis.candidates {
         match Card::fetch_by_id(&state.pool, &candidate.card_id).await? {
-            Some(card) => enriched.push((card, candidate.clone())),
+            Some(card) => enriched.push((card, candidate)),
             None => {
-                tracing::warn!(card_id = %candidate.card_id, "candidato ML sin carta en catalogo, se omite");
+                tracing::warn!(card_id = %candidate.card_id, "candidato sin carta en catalogo, se omite");
             }
         }
     }
@@ -83,6 +102,19 @@ pub async fn create_scan(
         card: card.clone(),
         confidence: candidate.final_score,
     });
+
+    // raw_json para auditoria del escaneo.
+    let raw_json = serde_json::to_string(&json!({
+        "engine": "mobileclip-visual",
+        "low_confidence": analysis.low_confidence,
+        "candidates": analysis.candidates.iter().map(|c| json!({
+            "card_id": c.card_id,
+            "visual_score": c.visual_score,
+            "ocr_score": c.ocr_score,
+            "final_score": c.final_score,
+        })).collect::<Vec<_>>(),
+    }))
+    .ok();
 
     // 5. Persistir scans y scan_candidates en una transaccion.
     let mut tx = state.pool.begin().await?;
@@ -95,7 +127,7 @@ pub async fn create_scan(
     .bind(&image_path)
     .bind(best.as_ref().map(|b| b.card.id.clone()))
     .bind(best.as_ref().map(|b| b.confidence))
-    .bind(ml.low_confidence)
+    .bind(analysis.low_confidence)
     .bind(&raw_json)
     .execute(&mut *tx)
     .await?;
@@ -129,7 +161,7 @@ pub async fn create_scan(
 
     Ok(Json(ScanResponse {
         scan_id,
-        low_confidence: ml.low_confidence,
+        low_confidence: analysis.low_confidence,
         best,
         candidates,
     }))

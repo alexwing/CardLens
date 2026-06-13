@@ -4,8 +4,8 @@
 //! ejecuta las migraciones y levanta el servidor HTTP en 0.0.0.0:API_PORT.
 
 mod config;
+mod engine;
 mod error;
-mod ml_client;
 mod models;
 mod providers;
 mod routes;
@@ -21,7 +21,7 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use crate::config::Config;
-use crate::ml_client::MlClient;
+use crate::engine::RecognizerEngine;
 use crate::providers::PriceProviderKind;
 
 /// Tamano maximo de subida (fotos de cartas).
@@ -32,7 +32,7 @@ const MAX_UPLOAD_BYTES: usize = 20 * 1024 * 1024;
 pub struct AppState {
     pub pool: SqlitePool,
     pub config: Config,
-    pub ml: MlClient,
+    pub engine: Option<RecognizerEngine>,
     pub price_provider: PriceProviderKind,
 }
 
@@ -73,9 +73,12 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&pool).await?;
     tracing::info!("base de datos lista en {}", config.database_path.display());
 
+    // Reconocedor on-device (MobileCLIP + ONNX). None = modo degradado.
+    let engine = RecognizerEngine::load(&config);
+
     let state = AppState {
         pool,
-        ml: MlClient::new(config.ml_service_url.clone()),
+        engine,
         price_provider: PriceProviderKind::from_name(&config.price_provider),
         config: config.clone(),
     };

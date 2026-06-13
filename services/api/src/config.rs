@@ -12,10 +12,20 @@ pub struct Config {
     pub database_path: PathBuf,
     /// Directorio absoluto de datos (env `DATA_DIR`, default `<raiz del repo>/data`).
     pub data_dir: PathBuf,
-    /// URL base del servicio ML (env `ML_SERVICE_URL`, default `http://127.0.0.1:8001`).
-    pub ml_service_url: String,
     /// Proveedor de precios (env `PRICE_PROVIDER`, `null` o `tcgdex`, default `null`).
     pub price_provider: String,
+    /// Modelo ONNX del encoder visual (env `MODEL_PATH`).
+    pub model_path: PathBuf,
+    /// Indice de embeddings (.bin) del reconocedor (env `INDEX_BIN_PATH`).
+    pub index_bin_path: PathBuf,
+    /// Metadatos del indice (.json) (env `INDEX_CARDS_PATH`).
+    pub index_cards_path: PathBuf,
+    /// Numero de candidatos a devolver (env `TOP_K`, default 5).
+    pub top_k: usize,
+    /// Umbral de confianza para marcar low_confidence (env `CONF_THRESHOLD`, default 0.80).
+    pub conf_threshold: f64,
+    /// Margen minimo top1-top2 (env `MARGIN_THRESHOLD`, default 0.05).
+    pub margin_threshold: f64,
 }
 
 impl Config {
@@ -46,19 +56,45 @@ impl Config {
             Err(_) => default_data_dir.join("app.db"),
         };
 
-        let ml_service_url = env::var("ML_SERVICE_URL")
-            .unwrap_or_else(|_| "http://127.0.0.1:8001".to_string())
-            .trim_end_matches('/')
-            .to_string();
-
         let price_provider = env::var("PRICE_PROVIDER").unwrap_or_else(|_| "null".to_string());
+
+        let index_dir = data_dir.join("index");
+        let model_path = match env::var("MODEL_PATH") {
+            Ok(value) => resolve_from_repo_root(&repo_root, &value),
+            Err(_) => repo_root.join("models/mobileclip2_s0/vision_model.onnx"),
+        };
+        let index_bin_path = match env::var("INDEX_BIN_PATH") {
+            Ok(value) => resolve_from_repo_root(&repo_root, &value),
+            Err(_) => index_dir.join("mobileclip.bin"),
+        };
+        let index_cards_path = match env::var("INDEX_CARDS_PATH") {
+            Ok(value) => resolve_from_repo_root(&repo_root, &value),
+            Err(_) => index_dir.join("mobileclip_cards.json"),
+        };
+        let top_k = env::var("TOP_K")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(5usize);
+        let conf_threshold = env::var("CONF_THRESHOLD")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.80f64);
+        let margin_threshold = env::var("MARGIN_THRESHOLD")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.05f64);
 
         Ok(Self {
             api_port,
             database_path,
             data_dir,
-            ml_service_url,
             price_provider,
+            model_path,
+            index_bin_path,
+            index_cards_path,
+            top_k,
+            conf_threshold,
+            margin_threshold,
         })
     }
 }
