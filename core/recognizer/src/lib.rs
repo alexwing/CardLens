@@ -10,6 +10,7 @@
 //! concentra en la parte portatil de la inferencia, que es identica en ambos
 //! objetivos y se desarrolla/prueba primero en escritorio.
 
+pub mod detector;
 pub mod index;
 pub mod preprocess;
 

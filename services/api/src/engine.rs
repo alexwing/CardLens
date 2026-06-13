@@ -112,7 +112,7 @@ impl RecognizerEngine {
                 let mut guard = embedder
                     .lock()
                     .map_err(|_| anyhow::anyhow!("mutex del embedder envenenado"))?;
-                guard.embed_bytes(&image_bytes)?
+                guard.embed_bytes_detected(&image_bytes)?
             };
             let matches = index.search(&embedding, top_k)?;
 

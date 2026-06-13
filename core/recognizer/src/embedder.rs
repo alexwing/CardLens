@@ -79,10 +79,20 @@ impl Embedder {
     }
 
     /// Genera el embedding a partir de bytes de imagen sin decodificar
-    /// (JPEG/PNG), tal como llegan de la camara o de un archivo.
+    /// (JPEG/PNG), tal como llegan de la camara o de un archivo. No aplica
+    /// deteccion: util para imagenes ya limpias (catalogo).
     pub fn embed_bytes(&mut self, image_bytes: &[u8]) -> anyhow::Result<Vec<f32>> {
         let img = image::load_from_memory(image_bytes).context("decodificando la imagen")?;
         self.embed(&img)
+    }
+
+    /// Igual que `embed_bytes` pero detecta y recorta la carta antes de
+    /// embeber (para fotos reales con fondo). Si no se detecta una carta,
+    /// usa la imagen completa como fallback.
+    pub fn embed_bytes_detected(&mut self, image_bytes: &[u8]) -> anyhow::Result<Vec<f32>> {
+        let img = image::load_from_memory(image_bytes).context("decodificando la imagen")?;
+        let card = crate::detector::detect_and_crop(&img).unwrap_or(img);
+        self.embed(&card)
     }
 }
 
