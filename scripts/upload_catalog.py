@@ -10,7 +10,7 @@ Uso (desde la raiz del repo):
     python scripts/upload_catalog.py               # sube las imagenes que falten
 
 Variables (en .env.upload o en el entorno):
-    CARDLENS_FTP_HOST    (p. ej. 191.96.63.58)
+    CARDLENS_FTP_HOST    (host o IP de tu FTP)
     CARDLENS_FTP_USER
     CARDLENS_FTP_PASS
     CARDLENS_FTP_PORT    (default: 21)
