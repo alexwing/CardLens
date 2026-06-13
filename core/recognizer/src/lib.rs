@@ -17,8 +17,19 @@ pub mod preprocess;
 #[cfg(feature = "onnx")]
 pub mod embedder;
 
+#[cfg(feature = "ocr")]
+pub mod ocr;
+
 pub use index::{l2_normalize, CardRef, FlatIndex, Match};
 pub use preprocess::{image_to_tensor, PreprocessConfig};
+
+/// Decodifica los bytes de una imagen y devuelve la carta recortada (detector);
+/// si no se detecta carta, devuelve la imagen completa. Asi embedding y OCR
+/// trabajan sobre la misma vista de la carta.
+pub fn prepare_card(image_bytes: &[u8]) -> anyhow::Result<image::DynamicImage> {
+    let img = image::load_from_memory(image_bytes)?;
+    Ok(detector::detect_and_crop(&img).unwrap_or(img))
+}
 
 #[cfg(feature = "onnx")]
 pub use embedder::Embedder;

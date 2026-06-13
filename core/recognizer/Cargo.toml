@@ -13,6 +13,10 @@ crate-type = ["lib"]
 name = "build_index"
 required-features = ["onnx"]
 
+[[example]]
+name = "ocr_dump"
+required-features = ["ocr"]
+
 [dependencies]
 anyhow = "1"
 ndarray = "0.16"
@@ -25,11 +29,16 @@ serde_json = "1"
 # En escritorio descarga binarios prebuilt (feature download-binaries);
 # en Android se compila ORT desde fuente con el NDK.
 ort = { version = "=2.0.0-rc.10", default-features = false, features = ["ndarray"], optional = true }
+# OCR en Rust puro (runtime rten, sin dependencias nativas).
+ocrs = { version = "0.10", optional = true }
+rten = { version = "0.21", optional = true }
 
 [features]
 default = []
 # Activa el embedder visual basado en ONNX Runtime.
 onnx = ["dep:ort"]
+# Activa el OCR (ocrs / rten).
+ocr = ["dep:ocrs", "dep:rten"]
 # Desarrollo en escritorio: carga onnxruntime.dll en tiempo de ejecucion
 # (evita el enlace estatico del binario prebuilt, que choca con la version de
 # MSVC del host). En Android se enlaza el ORT compilado con el NDK, no esto.

@@ -26,6 +26,16 @@ pub struct Config {
     pub conf_threshold: f64,
     /// Margen minimo top1-top2 (env `MARGIN_THRESHOLD`, default 0.05).
     pub margin_threshold: f64,
+    /// Candidatos que se recuperan del indice antes de re-rankear con OCR
+    /// (env `SEARCH_K`, default 30).
+    pub search_k: usize,
+    /// Peso del refuerzo OCR (bonus aditivo sobre el score visual)
+    /// (env `W_OCR`, default 0.35).
+    pub w_ocr: f64,
+    /// Modelo OCR de deteccion de texto (env `OCR_DET_PATH`).
+    pub ocr_det_path: PathBuf,
+    /// Modelo OCR de reconocimiento de texto (env `OCR_REC_PATH`).
+    pub ocr_rec_path: PathBuf,
 }
 
 impl Config {
@@ -83,6 +93,23 @@ impl Config {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(0.05f64);
+        let search_k = env::var("SEARCH_K")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(30usize);
+        let w_ocr = env::var("W_OCR")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.35f64);
+        let ocr_dir = repo_root.join("models/ocrs");
+        let ocr_det_path = match env::var("OCR_DET_PATH") {
+            Ok(value) => resolve_from_repo_root(&repo_root, &value),
+            Err(_) => ocr_dir.join("text-detection.rten"),
+        };
+        let ocr_rec_path = match env::var("OCR_REC_PATH") {
+            Ok(value) => resolve_from_repo_root(&repo_root, &value),
+            Err(_) => ocr_dir.join("text-recognition.rten"),
+        };
 
         Ok(Self {
             api_port,
@@ -95,6 +122,10 @@ impl Config {
             top_k,
             conf_threshold,
             margin_threshold,
+            search_k,
+            w_ocr,
+            ocr_det_path,
+            ocr_rec_path,
         })
     }
 }
