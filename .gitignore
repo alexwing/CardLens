@@ -10,6 +10,8 @@ __pycache__/
 
 # Entorno local
 .env
+# Credenciales de subida (FTP) — nunca versionar
+.env.upload
 
 # Datos locales (DB, imagenes, scans, indice)
 data/*
