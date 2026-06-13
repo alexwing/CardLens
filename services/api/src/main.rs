@@ -56,10 +56,14 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Pool SQLite con creacion automatica y journal_mode WAL.
+    // busy_timeout deja que las escrituras esperen en vez de fallar con
+    // SQLITE_BUSY cuando otro proceso (p. ej. la ingesta del catalogo)
+    // tiene el lock de escritura.
     let connect_options = SqliteConnectOptions::new()
         .filename(&config.database_path)
         .create_if_missing(true)
         .journal_mode(SqliteJournalMode::Wal)
+        .busy_timeout(std::time::Duration::from_secs(5))
         .foreign_keys(true);
     let pool = SqlitePoolOptions::new()
         .max_connections(5)

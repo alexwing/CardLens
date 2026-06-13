@@ -112,3 +112,44 @@ export interface CardQueryParams {
   page?: number;
   page_size?: number;
 }
+
+/** Snapshot legible de la carta dentro del fichero exportado. */
+export interface CollectionExportCard {
+  name: string;
+  set_name: string | null;
+  number: string;
+}
+
+/** Item de la coleccion en el documento exportado. */
+export interface CollectionExportItem {
+  card_id: string;
+  quantity: number;
+  condition: string | null;
+  lang: string | null;
+  notes: string | null;
+  created_at: string;
+  card: CollectionExportCard;
+}
+
+/** Documento de GET /api/collection/export (y entrada de la importacion). */
+export interface CollectionExport {
+  format: string;
+  version: number;
+  exported_at: string;
+  count: number;
+  items: CollectionExportItem[];
+}
+
+/** Carta omitida en la importacion, con el motivo. */
+export interface SkippedImportItem {
+  card_id: string;
+  reason: string;
+}
+
+/** Resumen de POST /api/collection/import. */
+export interface CollectionImportSummary {
+  mode: string;
+  imported: number;
+  updated: number;
+  skipped: SkippedImportItem[];
+}

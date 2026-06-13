@@ -182,6 +182,7 @@ def ingest_set(
     images_dir: Path,
     tcgdex_set_id: str,
     lang: str,
+    existing_ids: set[str],
 ) -> tuple[int, int]:
     """Ingesta un set completo. Devuelve (cartas insertadas, imagenes descargadas)."""
     detail = source.get_set(tcgdex_set_id, lang)
@@ -201,9 +202,14 @@ def ingest_set(
         tcgdex_card_id = brief.get("id")
         if not tcgdex_card_id:
             continue
+        card_id = f"{tcgdex_card_id}_{lang}"
+        # Reanudacion: si la carta ya esta en BD con imagen local descargada,
+        # se omite (ni se pide su ficha ni se descarga la imagen). Hace que
+        # relanzar la ingesta tras una interrupcion avance rapido a lo nuevo.
+        if card_id in existing_ids and (images_dir / f"{card_id}.png").exists():
+            continue
         time.sleep(REQUEST_PAUSE_S)
         card = source.get_card(tcgdex_card_id, lang) or brief
-        card_id = f"{tcgdex_card_id}_{lang}"
 
         image_local = None
         low_url = source.image_url(card, "low")
@@ -264,6 +270,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     connection.execute("PRAGMA journal_mode = WAL")
     connection.execute("PRAGMA foreign_keys = ON")
 
+    # Conjunto de cartas ya completas (con imagen local) para poder reanudar
+    # sin re-descargar ni re-pedir lo ya hecho.
+    existing_ids = {
+        row[0]
+        for row in connection.execute(
+            "SELECT id FROM cards WHERE image_local IS NOT NULL"
+        )
+    }
+    if existing_ids:
+        logger.info("Reanudacion: %s cartas ya completas se omitiran", len(existing_ids))
+
     total_cards = 0
     total_images = 0
     try:
@@ -284,7 +301,13 @@ def main(argv: Optional[list[str]] = None) -> int:
                     set_ids = args.sets
                 for set_id in set_ids:
                     cards_done, images_done = ingest_set(
-                        source, connection, http_client, settings.images_dir, set_id, lang
+                        source,
+                        connection,
+                        http_client,
+                        settings.images_dir,
+                        set_id,
+                        lang,
+                        existing_ids,
                     )
                     total_cards += cards_done
                     total_images += images_done

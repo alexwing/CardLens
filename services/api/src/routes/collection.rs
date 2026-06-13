@@ -9,9 +9,22 @@ use uuid::Uuid;
 
 use crate::error::ApiError;
 use crate::models::{
-    Card, CollectionItemResponse, CollectionResponse, CreateCollectionItemRequest,
+    Card, CollectionExport, CollectionExportCard, CollectionExportItem, CollectionImportRequest,
+    CollectionImportSummary, CollectionItemResponse, CollectionResponse,
+    CreateCollectionItemRequest, SkippedImportItem, COLLECTION_EXPORT_FORMAT,
+    COLLECTION_EXPORT_VERSION,
 };
 use crate::AppState;
+
+/// SELECT del JOIN collection_items + cards + sets, ordenado por fecha.
+const COLLECTION_SELECT: &str =
+    "SELECT ci.id, ci.quantity, ci.condition, ci.lang AS item_lang, ci.notes, ci.created_at, \
+            c.id AS card_id, c.set_id, c.name AS card_name, c.number, c.rarity, c.supertype, \
+            c.lang AS card_lang, c.image_url, c.image_local, s.name AS set_name \
+     FROM collection_items ci \
+     JOIN cards c ON c.id = ci.card_id \
+     LEFT JOIN sets s ON s.id = c.set_id \
+     ORDER BY ci.created_at DESC";
 
 /// Fila plana del JOIN collection_items + cards + sets.
 #[derive(Debug, FromRow)]
@@ -63,20 +76,152 @@ impl From<CollectionRow> for CollectionItemResponse {
 pub async fn list_items(
     State(state): State<AppState>,
 ) -> Result<Json<CollectionResponse>, ApiError> {
-    let rows = sqlx::query_as::<_, CollectionRow>(
-        "SELECT ci.id, ci.quantity, ci.condition, ci.lang AS item_lang, ci.notes, ci.created_at, \
-                c.id AS card_id, c.set_id, c.name AS card_name, c.number, c.rarity, c.supertype, \
-                c.lang AS card_lang, c.image_url, c.image_local, s.name AS set_name \
-         FROM collection_items ci \
-         JOIN cards c ON c.id = ci.card_id \
-         LEFT JOIN sets s ON s.id = c.set_id \
-         ORDER BY ci.created_at DESC",
-    )
-    .fetch_all(&state.pool)
-    .await?;
+    let rows = sqlx::query_as::<_, CollectionRow>(COLLECTION_SELECT)
+        .fetch_all(&state.pool)
+        .await?;
 
     Ok(Json(CollectionResponse {
         items: rows.into_iter().map(Into::into).collect(),
+    }))
+}
+
+/// Exporta la coleccion completa como documento JSON portable y versionado
+/// (GET /api/collection/export). El mismo documento se puede reimportar.
+pub async fn export_collection(
+    State(state): State<AppState>,
+) -> Result<Json<CollectionExport>, ApiError> {
+    let rows = sqlx::query_as::<_, CollectionRow>(COLLECTION_SELECT)
+        .fetch_all(&state.pool)
+        .await?;
+
+    let items: Vec<CollectionExportItem> = rows
+        .into_iter()
+        .map(|row| CollectionExportItem {
+            card_id: row.card_id,
+            quantity: row.quantity,
+            condition: row.condition,
+            lang: row.item_lang,
+            notes: row.notes,
+            created_at: row.created_at,
+            card: CollectionExportCard {
+                name: row.card_name,
+                set_name: row.set_name,
+                number: row.number,
+            },
+        })
+        .collect();
+
+    Ok(Json(CollectionExport {
+        format: COLLECTION_EXPORT_FORMAT.to_string(),
+        version: COLLECTION_EXPORT_VERSION,
+        exported_at: Utc::now().to_rfc3339(),
+        count: items.len(),
+        items,
+    }))
+}
+
+/// Importa items de coleccion desde un documento JSON (POST /api/collection/import).
+///
+/// `mode = "merge"` (por defecto): por cada item, si ya existe uno con el mismo
+/// card_id actualiza cantidad/estado/idioma/notas; si no, lo inserta. Reimportar
+/// el mismo fichero es idempotente. `mode = "replace"`: vacia la coleccion y la
+/// rellena con el documento. Las cartas que no existen en el catalogo local se
+/// omiten (no se puede satisfacer la clave foranea) y se listan en el resumen.
+pub async fn import_collection(
+    State(state): State<AppState>,
+    Json(body): Json<CollectionImportRequest>,
+) -> Result<Json<CollectionImportSummary>, ApiError> {
+    let mode = body.mode.unwrap_or_else(|| "merge".to_string());
+    if mode != "merge" && mode != "replace" {
+        return Err(ApiError::BadRequest(format!(
+            "mode invalido: '{mode}' (usa 'merge' o 'replace')"
+        )));
+    }
+
+    let mut tx = state.pool.begin().await?;
+
+    if mode == "replace" {
+        sqlx::query("DELETE FROM collection_items")
+            .execute(&mut *tx)
+            .await?;
+    }
+
+    let mut imported = 0usize;
+    let mut updated = 0usize;
+    let mut skipped: Vec<SkippedImportItem> = Vec::new();
+
+    for item in body.items {
+        if item.quantity < 1 {
+            skipped.push(SkippedImportItem {
+                card_id: item.card_id,
+                reason: "quantity debe ser mayor o igual que 1".to_string(),
+            });
+            continue;
+        }
+
+        let card_exists: Option<String> = sqlx::query_scalar("SELECT id FROM cards WHERE id = ?1")
+            .bind(&item.card_id)
+            .fetch_optional(&mut *tx)
+            .await?;
+        if card_exists.is_none() {
+            skipped.push(SkippedImportItem {
+                card_id: item.card_id,
+                reason: "carta no encontrada en el catalogo local".to_string(),
+            });
+            continue;
+        }
+
+        // En modo merge, reutiliza el item existente para ese card_id.
+        if mode == "merge" {
+            let existing_id: Option<String> =
+                sqlx::query_scalar("SELECT id FROM collection_items WHERE card_id = ?1 LIMIT 1")
+                    .bind(&item.card_id)
+                    .fetch_optional(&mut *tx)
+                    .await?;
+            if let Some(existing_id) = existing_id {
+                sqlx::query(
+                    "UPDATE collection_items \
+                     SET quantity = ?1, condition = ?2, lang = ?3, notes = ?4 \
+                     WHERE id = ?5",
+                )
+                .bind(item.quantity)
+                .bind(&item.condition)
+                .bind(&item.lang)
+                .bind(&item.notes)
+                .bind(&existing_id)
+                .execute(&mut *tx)
+                .await?;
+                updated += 1;
+                continue;
+            }
+        }
+
+        let id = Uuid::new_v4().to_string();
+        let created_at = Utc::now().to_rfc3339();
+        sqlx::query(
+            "INSERT INTO collection_items \
+                (id, user_id, card_id, scan_id, quantity, condition, lang, notes, created_at) \
+             VALUES (?1, NULL, ?2, NULL, ?3, ?4, ?5, ?6, ?7)",
+        )
+        .bind(&id)
+        .bind(&item.card_id)
+        .bind(item.quantity)
+        .bind(&item.condition)
+        .bind(&item.lang)
+        .bind(&item.notes)
+        .bind(&created_at)
+        .execute(&mut *tx)
+        .await?;
+        imported += 1;
+    }
+
+    tx.commit().await?;
+
+    Ok(Json(CollectionImportSummary {
+        mode,
+        imported,
+        updated,
+        skipped,
     }))
 }
 

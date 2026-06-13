@@ -157,6 +157,25 @@ a:hover {
   font-size: 13px;
 }
 
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+/* ---------- Acciones de la coleccion (exportar/importar) ---------- */
+.collection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
 /* ---------- Pestanas ---------- */
 .tabs {
   display: flex;
@@ -290,6 +309,15 @@ a:hover {
 .error-banner {
   background: rgba(239, 68, 68, 0.12);
   border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+.info-banner {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid var(--success);
   border-radius: var(--radius);
   padding: 12px 16px;
   font-size: 14px;

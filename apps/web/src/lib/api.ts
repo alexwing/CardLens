@@ -7,6 +7,8 @@ import type {
   Card,
   CardListResponse,
   CardQueryParams,
+  CollectionExport,
+  CollectionImportSummary,
   CollectionItem,
   CollectionResponse,
   HealthResponse,
@@ -73,6 +75,26 @@ export function addToCollection(payload: AddCollectionItemPayload): Promise<Coll
 /** Elimina un item de la coleccion (204). */
 export function removeFromCollection(id: string): Promise<void> {
   return request<void>(`/api/collection/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** Descarga la coleccion como documento JSON portable y versionado. */
+export function exportCollection(): Promise<CollectionExport> {
+  return request<CollectionExport>('/api/collection/export');
+}
+
+/**
+ * Importa items de coleccion. `mode`: 'merge' (actualiza por card_id) o
+ * 'replace' (vacia y rellena). Devuelve un resumen con omitidos.
+ */
+export function importCollection(
+  items: unknown,
+  mode: 'merge' | 'replace' = 'merge',
+): Promise<CollectionImportSummary> {
+  return request<CollectionImportSummary>('/api/collection/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode, items }),
+  });
 }
 
 /** Precios cacheados de una carta. */

@@ -191,3 +191,86 @@ pub struct PricesResponse {
     pub card_id: String,
     pub prices: Vec<PriceQuote>,
 }
+
+// ---------------------------------------------------------------------------
+// Importacion / exportacion de la coleccion en JSON
+// ---------------------------------------------------------------------------
+
+/// Identificador del formato de fichero de coleccion exportado.
+pub const COLLECTION_EXPORT_FORMAT: &str = "pokemoncarddetector.collection";
+/// Version del esquema del fichero de coleccion (subir si cambia el formato).
+pub const COLLECTION_EXPORT_VERSION: u32 = 1;
+
+/// Snapshot legible de la carta dentro del fichero exportado. Solo
+/// informativo: la importacion usa unicamente `card_id`.
+#[derive(Debug, Serialize)]
+pub struct CollectionExportCard {
+    pub name: String,
+    pub set_name: Option<String>,
+    pub number: String,
+}
+
+/// Item de la coleccion en el documento exportado.
+#[derive(Debug, Serialize)]
+pub struct CollectionExportItem {
+    pub card_id: String,
+    pub quantity: i64,
+    pub condition: Option<String>,
+    pub lang: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: String,
+    pub card: CollectionExportCard,
+}
+
+/// Documento de exportacion (GET /api/collection/export).
+#[derive(Debug, Serialize)]
+pub struct CollectionExport {
+    pub format: String,
+    pub version: u32,
+    pub exported_at: String,
+    pub count: usize,
+    pub items: Vec<CollectionExportItem>,
+}
+
+/// Item dentro del documento de importacion. Los campos extra del fichero
+/// exportado (como `card`) se ignoran, de modo que un fichero exportado se
+/// puede reimportar tal cual.
+#[derive(Debug, Deserialize)]
+pub struct CollectionImportItem {
+    pub card_id: String,
+    #[serde(default = "default_quantity")]
+    pub quantity: i64,
+    #[serde(default)]
+    pub condition: Option<String>,
+    #[serde(default)]
+    pub lang: Option<String>,
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+/// Body de POST /api/collection/import. Acepta el mismo documento que produce
+/// la exportacion (format/version/exported_at/count se ignoran).
+/// `mode`: "merge" (por defecto, actualiza por card_id) o "replace"
+/// (vacia la coleccion antes de insertar).
+#[derive(Debug, Deserialize)]
+pub struct CollectionImportRequest {
+    #[serde(default)]
+    pub mode: Option<String>,
+    pub items: Vec<CollectionImportItem>,
+}
+
+/// Carta omitida durante la importacion, con el motivo.
+#[derive(Debug, Serialize)]
+pub struct SkippedImportItem {
+    pub card_id: String,
+    pub reason: String,
+}
+
+/// Resumen de POST /api/collection/import.
+#[derive(Debug, Serialize)]
+pub struct CollectionImportSummary {
+    pub mode: String,
+    pub imported: usize,
+    pub updated: usize,
+    pub skipped: Vec<SkippedImportItem>,
+}

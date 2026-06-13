@@ -22,6 +22,8 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/sets", get(sets::list_sets))
         .route("/api/scans", get(scans::list_scans))
         .route("/api/collection", get(collection::list_items))
+        .route("/api/collection/export", get(collection::export_collection))
+        .route("/api/collection/import", post(collection::import_collection))
         .route("/api/collection/items", post(collection::create_item))
         .route("/api/collection/items/{id}", delete(collection::delete_item))
         .route("/api/prices/{card_id}", get(prices::get_prices))

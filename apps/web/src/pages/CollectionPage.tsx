@@ -1,17 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionItem } from '../lib/types';
-import { getCollection, imageSrc, removeFromCollection } from '../lib/api';
+import {
+  exportCollection,
+  getCollection,
+  imageSrc,
+  importCollection,
+  removeFromCollection,
+} from '../lib/api';
 
 /**
  * Pagina de coleccion: lista los items guardados con miniatura, nombre,
- * set, cantidad y fecha, y permite eliminarlos con confirmacion.
+ * set, cantidad y fecha, permite eliminarlos, y exportar/importar la
+ * coleccion completa en formato JSON.
  */
 export default function CollectionPage() {
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -44,6 +54,81 @@ export default function CollectionPage() {
     }
   }
 
+  async function handleExport() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const doc = await exportCollection();
+      const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const today = new Date().toISOString().slice(0, 10);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `coleccion-pokemon-${today}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setNotice(`Colección exportada (${doc.count} ${doc.count === 1 ? 'carta' : 'cartas'}).`);
+    } catch {
+      setError('No se pudo exportar la colección. Comprueba que la API está en marcha.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleImportClick() {
+    setError(null);
+    setNotice(null);
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Permite volver a elegir el mismo fichero mas tarde.
+    event.target.value = '';
+    if (!file) return;
+
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const text = await file.text();
+      const parsed: unknown = JSON.parse(text);
+      // Acepta el documento exportado ({items:[...]}) o un array suelto.
+      const list = Array.isArray(parsed)
+        ? parsed
+        : (parsed as { items?: unknown }).items;
+      if (!Array.isArray(list)) {
+        setError('El archivo no tiene un formato de colección válido (falta «items»).');
+        return;
+      }
+
+      const replace = window.confirm(
+        'Importar colección:\n\n' +
+          'Aceptar = REEMPLAZAR toda tu colección por el archivo.\n' +
+          'Cancelar = COMBINAR (añadir cartas nuevas y actualizar las existentes).',
+      );
+      const summary = await importCollection(list, replace ? 'replace' : 'merge');
+      await load();
+
+      const parts = [`${summary.imported} añadidas`, `${summary.updated} actualizadas`];
+      if (summary.skipped.length > 0) {
+        parts.push(`${summary.skipped.length} omitidas (no están en el catálogo local)`);
+      }
+      setNotice(`Importación completada (${summary.mode}): ${parts.join(' · ')}.`);
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        setError('El archivo no es un JSON válido.');
+      } else {
+        setError('No se pudo importar la colección. Inténtalo de nuevo.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function formatDate(iso: string): string {
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) {
@@ -60,6 +145,38 @@ export default function CollectionPage() {
           {items.length === 1 ? '1 carta guardada' : `${items.length} cartas guardadas`}
         </p>
       </header>
+
+      <div className="collection-actions">
+        <button
+          type="button"
+          className="btn btn-secondary btn-small"
+          onClick={() => void handleExport()}
+          disabled={busy || items.length === 0}
+        >
+          Exportar JSON
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary btn-small"
+          onClick={handleImportClick}
+          disabled={busy}
+        >
+          Importar JSON
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={(event) => void handleFileChange(event)}
+          hidden
+        />
+      </div>
+
+      {notice && (
+        <div className="info-banner" role="status">
+          {notice}
+        </div>
+      )}
 
       {loading && (
         <div className="loading" role="status">
