@@ -21,10 +21,12 @@ Variables (en .env.upload o en el entorno):
 from __future__ import annotations
 
 import argparse
+import ftplib
 import io
 import os
 import ssl
 import sys
+import time
 from ftplib import FTP, FTP_TLS, error_perm
 from pathlib import Path
 
@@ -129,18 +131,61 @@ def main() -> int:
     todo = [p for p in pngs if p.name not in existing]
     print(
         f"{len(pngs)} imagenes locales | {len(existing)} ya en el servidor | "
-        f"{len(todo)} por subir."
+        f"{len(todo)} por subir.",
+        flush=True,
     )
 
+    # Subida resiliente: el control FTP se cae a veces en subidas largas
+    # (EOFError/timeout tras muchos comandos seguidos). Reconectamos y
+    # reintentamos el archivo en curso; reconexion proactiva cada 1000 para no
+    # agotar el canal de control.
     done = 0
-    for path in todo:
-        with path.open("rb") as handle:
-            ftp.storbinary(f"STOR {path.name}", handle)
-        done += 1
-        if done % 100 == 0 or done == len(todo):
-            print(f"  subidas {done}/{len(todo)}")
-    print(f"Listo: {done} imagenes nuevas subidas a {remote_dir}.")
-    ftp.quit()
+    fails: dict[str, int] = {}
+    failed: list[str] = []
+    i = 0
+    while i < len(todo):
+        path = todo[i]
+        try:
+            with path.open("rb") as handle:
+                ftp.storbinary(f"STOR {path.name}", handle)
+            done += 1
+            i += 1
+            if done % 100 == 0:
+                print(f"  subidas {done}/{len(todo)}", flush=True)
+            if done % 1000 == 0:
+                try:
+                    ftp.quit()
+                except Exception:
+                    pass
+                ftp = connect()
+                ensure_remote_dir(ftp, remote_dir)
+        except ftplib.all_errors as exc:
+            fails[path.name] = fails.get(path.name, 0) + 1
+            print(f"  reconectando tras error en {path.name}: {exc}", flush=True)
+            try:
+                ftp.close()
+            except Exception:
+                pass
+            time.sleep(2)
+            try:
+                ftp = connect()
+                ensure_remote_dir(ftp, remote_dir)
+            except Exception as exc2:
+                print(f"  fallo al reconectar: {exc2}", flush=True)
+                time.sleep(5)
+                continue
+            if fails[path.name] >= 4:
+                print(f"  OMITIDA tras varios intentos: {path.name}", flush=True)
+                failed.append(path.name)
+                i += 1
+
+    print(f"Listo: {done} imagenes nuevas subidas a {remote_dir}.", flush=True)
+    if failed:
+        print(f"Fallaron {len(failed)}: {', '.join(failed[:20])}", flush=True)
+    try:
+        ftp.quit()
+    except Exception:
+        pass
     return 0
 
 
