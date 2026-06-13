@@ -1,0 +1,24 @@
+# Dependencias y builds
+node_modules/
+dist/
+target/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Entorno local
+.env
+
+# Datos locales (DB, imagenes, scans, indice)
+data/*
+!data/.gitkeep
+
+# Modelos ONNX y runtimes nativos (binarios grandes; se descargan aparte)
+models/
+runtime/
+
+# Sistema y logs
+.DS_Store
+*.log

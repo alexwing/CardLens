@@ -1,0 +1,25 @@
+# PokemonCardDetector - alternativa con contenedores.
+# Los Dockerfile viven en services/api y services/ml (propiedad de esos modulos).
+# La ingesta del catalogo se ejecuta aparte (ver README, paso 3, o scripts/ingest.ps1).
+services:
+  api:
+    build: services/api
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./data:/data
+    environment:
+      DATABASE_PATH: /data/app.db
+      DATA_DIR: /data
+      ML_SERVICE_URL: http://ml:8001
+    depends_on:
+      - ml
+
+  ml:
+    build: services/ml
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/data
+    environment:
+      DATA_DIR: /data

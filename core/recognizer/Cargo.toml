@@ -1,0 +1,35 @@
+[package]
+name = "recognizer"
+version = "0.1.0"
+edition = "2021"
+description = "Nucleo de reconocimiento de cartas on-device: embedding (ONNX Runtime), busqueda coseno y OCR. Compartido entre escritorio y Android."
+
+[lib]
+name = "recognizer"
+crate-type = ["lib"]
+
+[dependencies]
+anyhow = "1"
+ndarray = "0.16"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# ONNX Runtime. Opcional: el nucleo puro (indice coseno + preprocesado) no lo
+# necesita, asi que los tests rapidos no compilan la dependencia nativa.
+# En escritorio descarga binarios prebuilt (feature download-binaries);
+# en Android se compila ORT desde fuente con el NDK.
+ort = { version = "=2.0.0-rc.10", default-features = false, features = ["ndarray"], optional = true }
+
+[features]
+default = []
+# Activa el embedder visual basado en ONNX Runtime.
+onnx = ["dep:ort"]
+# Desarrollo en escritorio: carga onnxruntime.dll en tiempo de ejecucion
+# (evita el enlace estatico del binario prebuilt, que choca con la version de
+# MSVC del host). En Android se enlaza el ORT compilado con el NDK, no esto.
+desktop-dynamic = ["ort/load-dynamic"]
+# Alternativa: deja que ort descargue y enlace estaticamente los binarios.
+download-binaries = ["ort/download-binaries"]
+
+[dev-dependencies]
+approx = "0.5"

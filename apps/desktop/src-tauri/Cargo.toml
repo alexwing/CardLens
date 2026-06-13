@@ -1,0 +1,19 @@
+[package]
+name = "pokemon-card-detector-desktop"
+version = "0.1.0"
+description = "Shell de escritorio y Android para Pokemon Card Detector"
+edition = "2021"
+
+# Patron oficial de Tauri 2: la logica vive en una lib para poder
+# compilar tambien como staticlib/cdylib en plataformas moviles.
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

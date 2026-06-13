@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic-settings
+numpy
+opencv-python
+pillow
+rapidocr-onnxruntime
+open_clip_torch
+torch
+faiss-cpu
+rapidfuzz
+httpx
+tqdm

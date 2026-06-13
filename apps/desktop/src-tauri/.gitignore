@@ -1,0 +1,5 @@
+# Artefactos de compilacion de Cargo
+/target/
+
+# Codigo generado por Tauri (esquemas de capabilities, proyectos android/ios)
+/gen/

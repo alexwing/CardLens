@@ -1,0 +1,14 @@
+{
+  "name": "pokemon-card-detector-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Shell Tauri 2 (escritorio y Android) que carga la web de Pokemon Card Detector",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

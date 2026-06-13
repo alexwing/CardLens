@@ -1,0 +1,12 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+// Configuracion de Vite para la web del detector de cartas.
+// El puerto 5173 es el contrato para desarrollo local.
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
+});
