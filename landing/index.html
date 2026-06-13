@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f1115" />
+    <meta
+      name="description"
+      content="CardLens: escanea cartas Pokémon TCG con la cámara, identifícalas al instante y gestiona tu colección. Reconocimiento 100% en tu dispositivo, privado y sin nube."
+    />
+    <title>CardLens — Escáner de cartas Pokémon TCG</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --bg-elevated: #171b24;
+        --bg-card: #1c2230;
+        --border: #2b3245;
+        --text: #e8ecf4;
+        --muted: #98a2b8;
+        --accent: #facc15;
+        --accent-contrast: #1a1605;
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      a {
+        color: var(--accent);
+      }
+      /* Cabecera con marca y selector de idioma */
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: rgba(15, 17, 21, 0.85);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+      }
+      .site-brand {
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .lang-toggle {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .lang-option {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        padding: 5px 12px;
+        cursor: pointer;
+      }
+      .lang-option.active {
+        background: var(--accent);
+        color: var(--accent-contrast);
+      }
+      /* Hero */
+      .hero {
+        text-align: center;
+        padding: 56px 20px 40px;
+      }
+      .logo {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 20px;
+        color: var(--accent);
+      }
+      .hero h1 {
+        font-size: 44px;
+        margin: 0 0 8px;
+        letter-spacing: -0.5px;
+      }
+      .tagline {
+        font-size: 20px;
+        margin: 0 0 12px;
+      }
+      .lede {
+        font-size: 16px;
+        color: var(--muted);
+        max-width: 620px;
+        margin: 0 auto 28px;
+      }
+      .cta {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 12px;
+        padding: 13px 22px;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: var(--bg-elevated);
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: var(--accent-contrast);
+        border-color: var(--accent);
+      }
+      .btn[aria-disabled="true"] {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        background: rgba(250, 204, 21, 0.12);
+        border: 1px solid rgba(250, 204, 21, 0.4);
+        border-radius: 999px;
+        padding: 3px 10px;
+        margin-bottom: 20px;
+      }
+      section {
+        padding: 40px 0;
+      }
+      h2 {
+        font-size: 26px;
+        text-align: center;
+        margin: 0 0 28px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+      }
+      .card h3 {
+        font-size: 17px;
+        margin: 0 0 8px;
+      }
+      .card p {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .icon {
+        width: 28px;
+        height: 28px;
+        color: var(--accent);
+        margin-bottom: 12px;
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        counter-reset: step;
+      }
+      .step {
+        position: relative;
+        padding: 22px 22px 22px 60px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      .step::before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 18px;
+        top: 20px;
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        background: var(--accent);
+        color: var(--accent-contrast);
+        font-weight: 700;
+        border-radius: 50%;
+      }
+      .step h3 {
+        margin: 0 0 4px;
+        font-size: 16px;
+      }
+      .step p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .download {
+        text-align: center;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 36px 20px;
+      }
+      .download p {
+        color: var(--muted);
+        max-width: 520px;
+        margin: 0 auto 20px;
+      }
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 28px 20px 48px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      footer .brand {
+        color: var(--text);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .disclaimer {
+        max-width: 720px;
+        margin: 0 auto;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="site-header">
+      <span class="site-brand">CardLens</span>
+      <div class="lang-toggle" role="group" aria-label="Idioma" data-i18n-aria="lang.aria">
+        <button type="button" class="lang-option" data-lang="es">ES</button>
+        <button type="button" class="lang-option" data-lang="en">EN</button>
+      </div>
+    </div>
+
+    <header class="hero">
+      <div class="wrap">
+        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 8V6a2 2 0 0 1 2-2h2" />
+          <path d="M16 4h2a2 2 0 0 1 2 2v2" />
+          <path d="M20 16v2a2 2 0 0 1-2 2h-2" />
+          <path d="M8 20H6a2 2 0 0 1-2-2v-2" />
+          <rect x="8.5" y="7" width="7" height="10" rx="1.5" />
+        </svg>
+        <span class="pill" data-i18n="pill">Beta en preparación</span>
+        <h1>CardLens</h1>
+        <p class="tagline" data-i18n="tagline">Escanea, identifica y colecciona tus cartas Pokémon TCG.</p>
+        <p class="lede" data-i18n-html="lede">
+          Apunta con la cámara y CardLens reconoce la carta al instante. El
+          reconocimiento se ejecuta <strong>100% en tu dispositivo</strong>: sin nube,
+          sin cuentas y sin que tus fotos salgan de tu móvil.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#descargar" data-i18n="cta.download">Descargar</a>
+          <a class="btn" href="#como-funciona" data-i18n="cta.how">Cómo funciona</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section id="caracteristicas">
+        <h2 data-i18n="features.title">Por qué CardLens</h2>
+        <div class="grid">
+          <div class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <h3 data-i18n="f1.title">Privado por diseño</h3>
+            <p data-i18n="f1.desc">La identificación corre en local con modelos preentrenados. Tus fotos no se suben a ningún servidor.</p>
+          </div>
+          <div class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <h3 data-i18n="f2.title">Reconocimiento por cámara</h3>
+            <p data-i18n="f2.desc">Detecta la carta, lee su texto y la compara visualmente para darte la coincidencia más probable en segundos.</p>
+          </div>
+          <div class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="9" height="13" rx="1.5"/><path d="M14 5l5.2 1.4a1.5 1.5 0 0 1 1.06 1.84L17.5 18.5"/></svg>
+            <h3 data-i18n="f3.title">Tu colección</h3>
+            <p data-i18n="f3.desc">Guarda las cartas escaneadas y consulta su set, número, rareza e información. Importa y exporta en JSON.</p>
+          </div>
+          <div class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <h3 data-i18n="f4.title">Móvil y escritorio</h3>
+            <p data-i18n="f4.desc">Una sola app para Android y escritorio, con la misma experiencia y tu colección siempre contigo.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="como-funciona">
+        <h2 data-i18n="how.title">Cómo funciona</h2>
+        <div class="steps">
+          <div class="step">
+            <h3 data-i18n="s1.title">Apunta</h3>
+            <p data-i18n="s1.desc">Enfoca la carta con la cámara o sube una foto desde la galería.</p>
+          </div>
+          <div class="step">
+            <h3 data-i18n="s2.title">Identifica</h3>
+            <p data-i18n="s2.desc">La IA local reconoce la carta y te muestra la más probable con su porcentaje de confianza.</p>
+          </div>
+          <div class="step">
+            <h3 data-i18n="s3.title">Colecciona</h3>
+            <p data-i18n="s3.desc">Guárdala en tu colección con un toque y consúltala cuando quieras.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="descargar">
+        <div class="download">
+          <h2 data-i18n="download.title">Descarga</h2>
+          <p data-i18n="download.text">
+            CardLens está en desarrollo. Las versiones para Android y escritorio
+            estarán disponibles aquí muy pronto. Vuelve en unos días.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" aria-disabled="true" href="#" data-i18n="download.android">Android · próximamente</a>
+            <a class="btn" aria-disabled="true" href="#" data-i18n="download.desktop">Escritorio · próximamente</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="brand">CardLens</div>
+        <p class="disclaimer" data-i18n="footer.disclaimer">
+          Proyecto no oficial, sin ánimo de lucro. No afiliado ni respaldado por
+          Nintendo, The Pokémon Company, Creatures ni GAME FREAK. «Pokémon», los
+          nombres de las cartas y sus imágenes son marcas y © de sus respectivos
+          propietarios; se usan únicamente con fines identificativos.
+        </p>
+        <p data-i18n="footer.copy">© 2026 Alejandro Aranda · Página provisional</p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var dict = {
+          es: {
+            'meta.title': 'CardLens — Escáner de cartas Pokémon TCG',
+            'meta.desc': 'CardLens: escanea cartas Pokémon TCG con la cámara, identifícalas al instante y gestiona tu colección. Reconocimiento 100% en tu dispositivo, privado y sin nube.',
+            'lang.aria': 'Idioma',
+            'pill': 'Beta en preparación',
+            'tagline': 'Escanea, identifica y colecciona tus cartas Pokémon TCG.',
+            'lede': 'Apunta con la cámara y CardLens reconoce la carta al instante. El reconocimiento se ejecuta <strong>100% en tu dispositivo</strong>: sin nube, sin cuentas y sin que tus fotos salgan de tu móvil.',
+            'cta.download': 'Descargar',
+            'cta.how': 'Cómo funciona',
+            'features.title': 'Por qué CardLens',
+            'f1.title': 'Privado por diseño',
+            'f1.desc': 'La identificación corre en local con modelos preentrenados. Tus fotos no se suben a ningún servidor.',
+            'f2.title': 'Reconocimiento por cámara',
+            'f2.desc': 'Detecta la carta, lee su texto y la compara visualmente para darte la coincidencia más probable en segundos.',
+            'f3.title': 'Tu colección',
+            'f3.desc': 'Guarda las cartas escaneadas y consulta su set, número, rareza e información. Importa y exporta en JSON.',
+            'f4.title': 'Móvil y escritorio',
+            'f4.desc': 'Una sola app para Android y escritorio, con la misma experiencia y tu colección siempre contigo.',
+            'how.title': 'Cómo funciona',
+            's1.title': 'Apunta',
+            's1.desc': 'Enfoca la carta con la cámara o sube una foto desde la galería.',
+            's2.title': 'Identifica',
+            's2.desc': 'La IA local reconoce la carta y te muestra la más probable con su porcentaje de confianza.',
+            's3.title': 'Colecciona',
+            's3.desc': 'Guárdala en tu colección con un toque y consúltala cuando quieras.',
+            'download.title': 'Descarga',
+            'download.text': 'CardLens está en desarrollo. Las versiones para Android y escritorio estarán disponibles aquí muy pronto. Vuelve en unos días.',
+            'download.android': 'Android · próximamente',
+            'download.desktop': 'Escritorio · próximamente',
+            'footer.disclaimer': 'Proyecto no oficial, sin ánimo de lucro. No afiliado ni respaldado por Nintendo, The Pokémon Company, Creatures ni GAME FREAK. «Pokémon», los nombres de las cartas y sus imágenes son marcas y © de sus respectivos propietarios; se usan únicamente con fines identificativos.',
+            'footer.copy': '© 2026 Alejandro Aranda · Página provisional',
+          },
+          en: {
+            'meta.title': 'CardLens — Pokémon TCG card scanner',
+            'meta.desc': 'CardLens: scan Pokémon TCG cards with your camera, identify them instantly and manage your collection. 100% on-device recognition, private and cloud-free.',
+            'lang.aria': 'Language',
+            'pill': 'Beta in the works',
+            'tagline': 'Scan, identify and collect your Pokémon TCG cards.',
+            'lede': 'Point your camera and CardLens recognizes the card instantly. Recognition runs <strong>100% on your device</strong>: no cloud, no accounts, and your photos never leave your phone.',
+            'cta.download': 'Download',
+            'cta.how': 'How it works',
+            'features.title': 'Why CardLens',
+            'f1.title': 'Private by design',
+            'f1.desc': 'Identification runs locally with pretrained models. Your photos are never uploaded to any server.',
+            'f2.title': 'Camera recognition',
+            'f2.desc': 'It detects the card, reads its text and compares it visually to give you the most likely match in seconds.',
+            'f3.title': 'Your collection',
+            'f3.desc': 'Save scanned cards and check their set, number, rarity and info. Import and export as JSON.',
+            'f4.title': 'Mobile and desktop',
+            'f4.desc': 'A single app for Android and desktop, with the same experience and your collection always with you.',
+            'how.title': 'How it works',
+            's1.title': 'Point',
+            's1.desc': 'Focus on the card with the camera or upload a photo from your gallery.',
+            's2.title': 'Identify',
+            's2.desc': 'The on-device AI recognizes the card and shows the most likely one with its confidence score.',
+            's3.title': 'Collect',
+            's3.desc': 'Save it to your collection with one tap and check it whenever you want.',
+            'download.title': 'Download',
+            'download.text': 'CardLens is in development. Android and desktop versions will be available here very soon. Check back in a few days.',
+            'download.android': 'Android · coming soon',
+            'download.desktop': 'Desktop · coming soon',
+            'footer.disclaimer': 'Unofficial, non-commercial project. Not affiliated with or endorsed by Nintendo, The Pokémon Company, Creatures or GAME FREAK. "Pokémon", card names and card images are trademarks and © of their respective owners; used for identification purposes only.',
+            'footer.copy': '© 2026 Alejandro Aranda · Provisional page',
+          },
+        };
+        function detect() {
+          try {
+            var s = localStorage.getItem('cardlens.lang');
+            if (s === 'es' || s === 'en') return s;
+          } catch (e) {}
+          return (navigator.language || 'es').toLowerCase().indexOf('en') === 0 ? 'en' : 'es';
+        }
+        function apply(lang) {
+          document.documentElement.lang = lang;
+          var d = dict[lang];
+          if (d) {
+            document.querySelectorAll('[data-i18n]').forEach(function (el) {
+              var k = el.getAttribute('data-i18n');
+              if (d[k] != null) el.textContent = d[k];
+            });
+            document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+              var k = el.getAttribute('data-i18n-html');
+              if (d[k] != null) el.innerHTML = d[k];
+            });
+            if (d['meta.title']) document.title = d['meta.title'];
+            var md = document.querySelector('meta[name="description"]');
+            if (md && d['meta.desc']) md.setAttribute('content', d['meta.desc']);
+          }
+          document.querySelectorAll('.lang-option').forEach(function (b) {
+            var on = b.getAttribute('data-lang') === lang;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+        }
+        document.querySelectorAll('.lang-option').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var lang = b.getAttribute('data-lang');
+            try { localStorage.setItem('cardlens.lang', lang); } catch (e) {}
+            apply(lang);
+          });
+        });
+        apply(detect());
+      })();
+    </script>
+  </body>
+</html>

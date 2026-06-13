@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "apps/web", "run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "landing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8090", "--directory", "landing"],
+      "port": 8090
     }
   ]
 }
