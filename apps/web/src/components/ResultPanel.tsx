@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ScanCandidateView, ScanResponse } from '../lib/types';
 import { addToCollection, imageSrc } from '../lib/api';
+import { useT } from '../lib/i18n';
 import CardTile from './CardTile';
 import ConfidenceBar from './ConfidenceBar';
 
@@ -17,6 +18,7 @@ interface ResultPanelProps {
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function ResultPanel({ result }: ResultPanelProps) {
+  const { t } = useT();
   const [selected, setSelected] = useState<ScanCandidateView | null>(
     result.candidates.length > 0 ? result.candidates[0] : null
   );
@@ -25,11 +27,8 @@ export default function ResultPanel({ result }: ResultPanelProps) {
   if (!result.best || !selected) {
     return (
       <section className="result-panel">
-        <h2>Sin coincidencias</h2>
-        <p className="empty-state">
-          No se ha podido identificar ninguna carta en la foto. Prueba con mejor luz, fondo liso y
-          la carta ocupando la mayor parte del encuadre.
-        </p>
+        <h2>{t('result.noMatch.title')}</h2>
+        <p className="empty-state">{t('result.noMatch.text')}</p>
       </section>
     );
   }
@@ -57,11 +56,11 @@ export default function ResultPanel({ result }: ResultPanelProps) {
 
   return (
     <section className="result-panel">
-      <h2>Resultado</h2>
+      <h2>{t('result.title')}</h2>
 
       {result.low_confidence && (
         <div className="warning-banner" role="alert">
-          Confianza baja: revisa las alternativas y elige la carta correcta antes de guardar.
+          {t('result.lowConfidence')}
         </div>
       )}
 
@@ -78,12 +77,14 @@ export default function ResultPanel({ result }: ResultPanelProps) {
             <Link to={`/carta/${encodeURIComponent(card.id)}`}>{card.name}</Link>
           </h3>
           <p className="best-card-meta">
-            {card.set_name ?? card.set_id} · Nº {card.number}
+            {t('common.setNumber', { set: card.set_name ?? card.set_id, number: card.number })}
             {card.rarity ? ` · ${card.rarity}` : ''}
           </p>
-          <p className="best-card-meta">Idioma: {card.lang}</p>
+          <p className="best-card-meta">
+            {t('common.language')}: {card.lang}
+          </p>
           <div className="best-card-confidence">
-            <span className="label">Confianza</span>
+            <span className="label">{t('common.confidence')}</span>
             <ConfidenceBar value={selected.confidence} />
           </div>
         </div>
@@ -91,7 +92,7 @@ export default function ResultPanel({ result }: ResultPanelProps) {
 
       {result.low_confidence && alternatives.length > 0 && (
         <div className="alternatives">
-          <h4>¿No es esta? Elige la correcta:</h4>
+          <h4>{t('result.altPrompt')}</h4>
           <div className="alternatives-grid">
             {alternatives.map((candidate) => (
               <CardTile
@@ -117,19 +118,17 @@ export default function ResultPanel({ result }: ResultPanelProps) {
           disabled={saveState === 'saving' || saveState === 'saved'}
         >
           {saveState === 'saving'
-            ? 'Guardando…'
+            ? t('result.saving')
             : saveState === 'saved'
-              ? 'Guardada en la colección ✓'
-              : 'Guardar en colección'}
+              ? t('result.saved')
+              : t('result.save')}
         </button>
         {saveState === 'saved' && (
           <p className="success-text">
-            Carta añadida. <Link to="/coleccion">Ver colección</Link>
+            {t('result.savedText')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
           </p>
         )}
-        {saveState === 'error' && (
-          <p className="error-text">No se pudo guardar la carta. Inténtalo de nuevo.</p>
-        )}
+        {saveState === 'error' && <p className="error-text">{t('result.saveError')}</p>}
       </div>
     </section>
   );

@@ -8,6 +8,8 @@ import {
   importCollection,
   removeFromCollection,
 } from '../lib/api';
+import { intlLocale, useT } from '../lib/i18n';
+import type { TranslationKey } from '../lib/locales/es';
 
 /**
  * Pagina de coleccion: lista los items guardados con miniatura, nombre,
@@ -15,6 +17,7 @@ import {
  * coleccion completa en formato JSON.
  */
 export default function CollectionPage() {
+  const { t, locale } = useT();
   const [items, setItems] = useState<CollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,25 +33,25 @@ export default function CollectionPage() {
       const response = await getCollection();
       setItems(response.items);
     } catch {
-      setError('No se pudo cargar la colección. Comprueba que la API está en marcha.');
+      setError(t('collection.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   async function handleDelete(item: CollectionItem) {
-    const ok = window.confirm(`¿Eliminar «${item.card.name}» de tu colección?`);
+    const ok = window.confirm(t('collection.removeConfirm', { name: item.card.name }));
     if (!ok) return;
     setDeletingId(item.id);
     try {
       await removeFromCollection(item.id);
       setItems((current) => current.filter((existing) => existing.id !== item.id));
     } catch {
-      setError('No se pudo eliminar la carta. Inténtalo de nuevo.');
+      setError(t('collection.removeError'));
     } finally {
       setDeletingId(null);
     }
@@ -70,9 +73,13 @@ export default function CollectionPage() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      setNotice(`Colección exportada (${doc.count} ${doc.count === 1 ? 'carta' : 'cartas'}).`);
+      setNotice(
+        doc.count === 1
+          ? t('collection.exported.one')
+          : t('collection.exported.other', { count: doc.count }),
+      );
     } catch {
-      setError('No se pudo exportar la colección. Comprueba que la API está en marcha.');
+      setError(t('collection.exportError'));
     } finally {
       setBusy(false);
     }
@@ -101,28 +108,28 @@ export default function CollectionPage() {
         ? parsed
         : (parsed as { items?: unknown }).items;
       if (!Array.isArray(list)) {
-        setError('El archivo no tiene un formato de colección válido (falta «items»).');
+        setError(t('collection.importInvalid'));
         return;
       }
 
-      const replace = window.confirm(
-        'Importar colección:\n\n' +
-          'Aceptar = REEMPLAZAR toda tu colección por el archivo.\n' +
-          'Cancelar = COMBINAR (añadir cartas nuevas y actualizar las existentes).',
-      );
+      const replace = window.confirm(t('collection.importConfirm'));
       const summary = await importCollection(list, replace ? 'replace' : 'merge');
       await load();
 
-      const parts = [`${summary.imported} añadidas`, `${summary.updated} actualizadas`];
+      const parts = [
+        t('collection.import.added', { count: summary.imported }),
+        t('collection.import.updated', { count: summary.updated }),
+      ];
       if (summary.skipped.length > 0) {
-        parts.push(`${summary.skipped.length} omitidas (no están en el catálogo local)`);
+        parts.push(t('collection.import.skipped', { count: summary.skipped.length }));
       }
-      setNotice(`Importación completada (${summary.mode}): ${parts.join(' · ')}.`);
+      const modeLabel = t(`collection.mode.${summary.mode}` as TranslationKey);
+      setNotice(t('collection.import.summary', { mode: modeLabel, parts: parts.join(' · ') }));
     } catch (err) {
       if (err instanceof SyntaxError) {
-        setError('El archivo no es un JSON válido.');
+        setError(t('collection.importNotJson'));
       } else {
-        setError('No se pudo importar la colección. Inténtalo de nuevo.');
+        setError(t('collection.importError'));
       }
     } finally {
       setBusy(false);
@@ -134,15 +141,21 @@ export default function CollectionPage() {
     if (Number.isNaN(date.getTime())) {
       return iso;
     }
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString(intlLocale(locale), {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   return (
     <div className="page collection-page">
       <header className="page-header">
-        <h1>Mi colección</h1>
+        <h1>{t('collection.title')}</h1>
         <p className="page-subtitle">
-          {items.length === 1 ? '1 carta guardada' : `${items.length} cartas guardadas`}
+          {items.length === 1
+            ? t('collection.count.one')
+            : t('collection.count.other', { count: items.length })}
         </p>
       </header>
 
@@ -153,7 +166,7 @@ export default function CollectionPage() {
           onClick={() => void handleExport()}
           disabled={busy || items.length === 0}
         >
-          Exportar JSON
+          {t('collection.export')}
         </button>
         <button
           type="button"
@@ -161,7 +174,7 @@ export default function CollectionPage() {
           onClick={handleImportClick}
           disabled={busy}
         >
-          Importar JSON
+          {t('collection.import')}
         </button>
         <input
           ref={fileInputRef}
@@ -181,7 +194,7 @@ export default function CollectionPage() {
       {loading && (
         <div className="loading" role="status">
           <div className="spinner" aria-hidden="true" />
-          <p>Cargando colección…</p>
+          <p>{t('collection.loading')}</p>
         </div>
       )}
 
@@ -193,9 +206,9 @@ export default function CollectionPage() {
 
       {!loading && !error && items.length === 0 && (
         <div className="empty-state">
-          <p>Todavía no tienes cartas en la colección.</p>
+          <p>{t('collection.empty')}</p>
           <Link to="/" className="btn btn-primary">
-            Escanear mi primera carta
+            {t('collection.emptyCta')}
           </Link>
         </div>
       )}
@@ -222,10 +235,16 @@ export default function CollectionPage() {
                 {item.card.name}
               </Link>
               <span className="collection-meta">
-                {item.card.set_name ?? item.card.set_id} · Nº {item.card.number}
+                {t('common.setNumber', {
+                  set: item.card.set_name ?? item.card.set_id,
+                  number: item.card.number,
+                })}
               </span>
               <span className="collection-meta">
-                Cantidad: {item.quantity} · Añadida el {formatDate(item.created_at)}
+                {t('collection.quantityAdded', {
+                  qty: item.quantity,
+                  date: formatDate(item.created_at),
+                })}
               </span>
             </div>
             <button
@@ -233,9 +252,9 @@ export default function CollectionPage() {
               className="btn btn-danger btn-small"
               onClick={() => void handleDelete(item)}
               disabled={deletingId === item.id}
-              aria-label={`Eliminar ${item.card.name}`}
+              aria-label={t('collection.removeAria', { name: item.card.name })}
             >
-              {deletingId === item.id ? '…' : 'Eliminar'}
+              {deletingId === item.id ? '…' : t('collection.remove')}
             </button>
           </li>
         ))}

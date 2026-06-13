@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import type { ScanResponse } from '../lib/types';
 import { scanImage } from '../lib/api';
+import { useT } from '../lib/i18n';
 import CameraCapture from '../components/CameraCapture';
 import ResultPanel from '../components/ResultPanel';
 
@@ -14,25 +15,29 @@ type ScanMode = 'camera' | 'upload';
  *    la camara nativa y funciona incluso sin getUserMedia (p. ej. sin HTTPS).
  */
 export default function ScanPage() {
+  const { t } = useT();
   const [mode, setMode] = useState<ScanMode>('camera');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const analyze = useCallback(async (blob: Blob) => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const response = await scanImage(blob);
-      setResult(response);
-    } catch {
-      setError('No se pudo analizar la imagen. Comprueba que la API está en marcha e inténtalo de nuevo.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const analyze = useCallback(
+    async (blob: Blob) => {
+      setLoading(true);
+      setError(null);
+      setResult(null);
+      try {
+        const response = await scanImage(blob);
+        setResult(response);
+      } catch {
+        setError(t('scan.error'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [t],
+  );
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -46,11 +51,11 @@ export default function ScanPage() {
   return (
     <div className="page scan-page">
       <header className="page-header">
-        <h1>Escanear carta</h1>
-        <p className="page-subtitle">Identifica una carta Pokémon con una foto.</p>
+        <h1>{t('scan.title')}</h1>
+        <p className="page-subtitle">{t('scan.subtitle')}</p>
       </header>
 
-      <div className="tabs" role="tablist" aria-label="Modo de captura">
+      <div className="tabs" role="tablist" aria-label={t('scan.captureMode')}>
         <button
           type="button"
           role="tab"
@@ -58,7 +63,7 @@ export default function ScanPage() {
           className={`tab${mode === 'camera' ? ' active' : ''}`}
           onClick={() => setMode('camera')}
         >
-          Cámara
+          {t('scan.tab.camera')}
         </button>
         <button
           type="button"
@@ -67,7 +72,7 @@ export default function ScanPage() {
           className={`tab${mode === 'upload' ? ' active' : ''}`}
           onClick={() => setMode('upload')}
         >
-          Subir
+          {t('scan.tab.upload')}
         </button>
       </div>
 
@@ -90,18 +95,16 @@ export default function ScanPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
           >
-            Hacer foto o elegir imagen
+            {t('scan.uploadButton')}
           </button>
-          <p className="hint">
-            En el móvil se abrirá la cámara nativa. También puedes elegir una foto de la galería.
-          </p>
+          <p className="hint">{t('scan.uploadHint')}</p>
         </div>
       )}
 
       {loading && (
         <div className="loading" role="status">
           <div className="spinner" aria-hidden="true" />
-          <p>Analizando la carta…</p>
+          <p>{t('scan.analyzing')}</p>
         </div>
       )}
 

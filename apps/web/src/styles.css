@@ -324,6 +324,45 @@ a:hover {
   margin: 12px 0;
 }
 
+/* ---------- Cabecera de la app y selector de idioma ---------- */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+.app-brand {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.lang-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lang-option {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.lang-option.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
 /* ---------- Aviso legal de no afiliacion ---------- */
 .app-disclaimer {
   margin-top: 28px;

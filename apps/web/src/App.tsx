@@ -2,6 +2,8 @@ import { BrowserRouter, NavLink, Navigate, Route, Routes } from 'react-router-do
 import ScanPage from './pages/ScanPage';
 import CollectionPage from './pages/CollectionPage';
 import CardPage from './pages/CardPage';
+import LanguageToggle from './components/LanguageToggle';
+import { useT } from './lib/i18n';
 
 function ScanIcon() {
   return (
@@ -25,9 +27,14 @@ function CollectionIcon() {
 }
 
 export default function App() {
+  const { t } = useT();
   return (
     <BrowserRouter>
       <div className="app-shell">
+        <header className="app-header">
+          <span className="app-brand">CardLens</span>
+          <LanguageToggle />
+        </header>
         <main className="app-content">
           <Routes>
             <Route path="/" element={<ScanPage />} />
@@ -35,21 +42,16 @@ export default function App() {
             <Route path="/carta/:id" element={<CardPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <footer className="app-disclaimer">
-            Proyecto no oficial, sin ánimo de lucro. No afiliado ni respaldado por
-            Nintendo, The Pokémon Company, Creatures ni GAME FREAK. «Pokémon», los
-            nombres de las cartas y sus imágenes son marcas y © de sus respectivos
-            propietarios; se usan únicamente con fines identificativos.
-          </footer>
+          <footer className="app-disclaimer">{t('disclaimer')}</footer>
         </main>
-        <nav className="bottom-nav" aria-label="Navegación principal">
+        <nav className="bottom-nav" aria-label={t('nav.ariaLabel')}>
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
             <ScanIcon />
-            <span>Escanear</span>
+            <span>{t('nav.scan')}</span>
           </NavLink>
           <NavLink to="/coleccion" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
             <CollectionIcon />
-            <span>Colección</span>
+            <span>{t('nav.collection')}</span>
           </NavLink>
         </nav>
       </div>

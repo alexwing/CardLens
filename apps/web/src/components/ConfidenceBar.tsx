@@ -1,3 +1,5 @@
+import { useT } from '../lib/i18n';
+
 /**
  * Barra de confianza con color semaforo:
  * verde >= 0.80, ambar >= 0.60, rojo por debajo.
@@ -14,6 +16,7 @@ export function confidenceLevel(value: number): 'high' | 'medium' | 'low' {
 }
 
 export default function ConfidenceBar({ value, showLabel = true }: ConfidenceBarProps) {
+  const { t } = useT();
   const clamped = Math.max(0, Math.min(1, value));
   const percent = Math.round(clamped * 100);
   const level = confidenceLevel(clamped);
@@ -26,7 +29,7 @@ export default function ConfidenceBar({ value, showLabel = true }: ConfidenceBar
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Confianza ${percent}%`}
+        aria-label={t('confidence.aria', { percent })}
       >
         <div className={`confidence-fill confidence-${level}`} style={{ width: `${percent}%` }} />
       </div>

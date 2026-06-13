@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useT } from '../lib/i18n';
+import type { TranslationKey } from '../lib/locales/es';
 
 /**
  * Captura con la camara del dispositivo (getUserMedia, camara trasera).
@@ -12,9 +14,12 @@ interface CameraCaptureProps {
 }
 
 export default function CameraCapture({ onCapture, disabled = false }: CameraCaptureProps) {
+  const { t } = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Guardamos la CLAVE del error (no el texto) para que el mensaje cambie de
+  // idioma reactivamente sin reiniciar la camara.
+  const [errorKey, setErrorKey] = useState<TranslationKey | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -22,9 +27,7 @@ export default function CameraCapture({ onCapture, disabled = false }: CameraCap
 
     async function startCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError(
-          'La cámara no está disponible en este navegador o en esta conexión (se necesita HTTPS o localhost). Usa la pestaña «Subir» para hacer la foto con la cámara nativa.'
-        );
+        setErrorKey('camera.unavailable');
         return;
       }
       try {
@@ -43,9 +46,7 @@ export default function CameraCapture({ onCapture, disabled = false }: CameraCap
         setReady(true);
       } catch {
         if (!cancelled) {
-          setError(
-            'No se pudo acceder a la cámara. Comprueba que has concedido el permiso, o usa la pestaña «Subir» para elegir una foto.'
-          );
+          setErrorKey('camera.denied');
         }
       }
     }
@@ -85,10 +86,10 @@ export default function CameraCapture({ onCapture, disabled = false }: CameraCap
     );
   }, [onCapture]);
 
-  if (error) {
+  if (errorKey) {
     return (
       <div className="camera-error" role="alert">
-        <p>{error}</p>
+        <p>{t(errorKey)}</p>
       </div>
     );
   }
@@ -105,9 +106,9 @@ export default function CameraCapture({ onCapture, disabled = false }: CameraCap
         onClick={handleCapture}
         disabled={disabled || !ready}
       >
-        {ready ? 'Capturar carta' : 'Iniciando cámara…'}
+        {ready ? t('camera.capture') : t('camera.starting')}
       </button>
-      <p className="hint">Encuadra la carta dentro del marco y pulsa el botón.</p>
+      <p className="hint">{t('camera.hint')}</p>
     </div>
   );
 }

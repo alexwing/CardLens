@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { Card, PriceQuote } from '../lib/types';
 import { getCard, getPrices, imageSrc } from '../lib/api';
+import { intlLocale, useT } from '../lib/i18n';
 
 /**
  * Detalle de una carta: imagen oficial, metadata del catalogo y precios.
@@ -9,10 +10,11 @@ import { getCard, getPrices, imageSrc } from '../lib/api';
  * vacio elegante.
  */
 export default function CardPage() {
+  const { t, locale } = useT();
   const { id } = useParams<{ id: string }>();
   const [card, setCard] = useState<Card | null>(null);
   const [prices, setPrices] = useState<PriceQuote[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function CardPage() {
 
     async function load(cardId: string) {
       setLoading(true);
-      setError(null);
+      setHasError(false);
       try {
         const cardData = await getCard(cardId);
         if (cancelled) return;
@@ -38,7 +40,7 @@ export default function CardPage() {
         }
       } catch {
         if (!cancelled) {
-          setError('No se pudo cargar la carta. Puede que no exista en el catálogo.');
+          setHasError(true);
         }
       } finally {
         if (!cancelled) {
@@ -56,7 +58,7 @@ export default function CardPage() {
   function formatMoney(value: number | null, currency: string): string {
     if (value === null) return '—';
     try {
-      return new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(value);
+      return new Intl.NumberFormat(intlLocale(locale), { style: 'currency', currency }).format(value);
     } catch {
       return `${value.toFixed(2)} ${currency}`;
     }
@@ -66,20 +68,20 @@ export default function CardPage() {
     <div className="page card-page">
       <header className="page-header">
         <Link to="/coleccion" className="back-link">
-          ← Volver
+          {t('card.back')}
         </Link>
       </header>
 
       {loading && (
         <div className="loading" role="status">
           <div className="spinner" aria-hidden="true" />
-          <p>Cargando carta…</p>
+          <p>{t('card.loading')}</p>
         </div>
       )}
 
-      {error && (
+      {hasError && (
         <div className="error-banner" role="alert">
-          {error}
+          {t('card.error')}
         </div>
       )}
 
@@ -97,23 +99,23 @@ export default function CardPage() {
               <h1>{card.name}</h1>
               <dl className="card-detail-meta">
                 <div>
-                  <dt>Set</dt>
+                  <dt>{t('card.meta.set')}</dt>
                   <dd>{card.set_name ?? card.set_id}</dd>
                 </div>
                 <div>
-                  <dt>Número</dt>
+                  <dt>{t('card.meta.number')}</dt>
                   <dd>{card.number}</dd>
                 </div>
                 <div>
-                  <dt>Rareza</dt>
+                  <dt>{t('card.meta.rarity')}</dt>
                   <dd>{card.rarity ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt>Tipo</dt>
+                  <dt>{t('card.meta.type')}</dt>
                   <dd>{card.supertype ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt>Idioma</dt>
+                  <dt>{t('common.language')}</dt>
                   <dd>{card.lang}</dd>
                 </div>
               </dl>
@@ -121,26 +123,23 @@ export default function CardPage() {
           </div>
 
           <section className="prices-section">
-            <h2>Precios</h2>
-            {prices === null && <p className="hint">Cargando precios…</p>}
+            <h2>{t('card.prices')}</h2>
+            {prices === null && <p className="hint">{t('card.prices.loading')}</p>}
             {prices !== null && prices.length === 0 && (
               <div className="empty-state">
-                <p>Sin fuente de precios configurada.</p>
-                <p className="hint">
-                  Configura un proveedor de precios en la API (PRICE_PROVIDER) para ver
-                  cotizaciones aquí.
-                </p>
+                <p>{t('card.prices.empty')}</p>
+                <p className="hint">{t('card.prices.emptyHint')}</p>
               </div>
             )}
             {prices !== null && prices.length > 0 && (
               <table className="prices-table">
                 <thead>
                   <tr>
-                    <th>Fuente</th>
-                    <th>Mercado</th>
-                    <th>Mínimo</th>
-                    <th>Máximo</th>
-                    <th>Tendencia</th>
+                    <th>{t('card.prices.source')}</th>
+                    <th>{t('card.prices.market')}</th>
+                    <th>{t('card.prices.low')}</th>
+                    <th>{t('card.prices.high')}</th>
+                    <th>{t('card.prices.trend')}</th>
                   </tr>
                 </thead>
                 <tbody>
