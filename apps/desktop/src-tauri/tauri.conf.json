@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Pokemon Card Detector",
+  "productName": "CardLens",
   "version": "0.1.0",
-  "identifier": "com.icariaatelier.pokemoncarddetector",
+  "identifier": "com.icariaatelier.cardlens",
   "build": {
     "devUrl": "http://localhost:5173",
     "frontendDist": "../../web/dist",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Pokemon Card Detector",
+        "title": "CardLens",
         "width": 1100,
         "height": 800,
         "minWidth": 360

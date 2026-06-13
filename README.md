@@ -1,6 +1,10 @@
-# PokemonCardDetector
+# CardLens
+
+> Escaner de cartas Pokemon TCG. (Repositorio: PokemonCardDetector.)
 
 Escanea cartas Pokemon con el movil o el escritorio, identificalas en segundos con modelos preentrenados que corren **100% en local**, consulta su informacion y precio estimado, y guardalas en tu coleccion personal.
+
+> **Aviso:** proyecto no oficial, sin animo de lucro. No afiliado ni respaldado por Nintendo, The Pokemon Company, Creatures ni GAME FREAK. «Pokemon», los nombres de las cartas y sus imagenes son marcas y © de sus respectivos propietarios; se usan unicamente con fines identificativos.
 
 - Sin nube, sin cuentas, sin coste: la inferencia (deteccion, OCR, embeddings y busqueda) se ejecuta en tu maquina.
 - Catalogo multiidioma (en, es, fr, de, it, pt) descargado de la API gratuita de [TCGdex](https://tcgdex.dev).

@@ -35,6 +35,12 @@ export default function App() {
             <Route path="/carta/:id" element={<CardPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <footer className="app-disclaimer">
+            Proyecto no oficial, sin ánimo de lucro. No afiliado ni respaldado por
+            Nintendo, The Pokémon Company, Creatures ni GAME FREAK. «Pokémon», los
+            nombres de las cartas y sus imágenes son marcas y © de sus respectivos
+            propietarios; se usan únicamente con fines identificativos.
+          </footer>
         </main>
         <nav className="bottom-nav" aria-label="Navegación principal">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>

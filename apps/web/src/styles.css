@@ -324,6 +324,17 @@ a:hover {
   margin: 12px 0;
 }
 
+/* ---------- Aviso legal de no afiliacion ---------- */
+.app-disclaimer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .warning-banner {
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid var(--warning);

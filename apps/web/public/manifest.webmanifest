@@ -1,7 +1,7 @@
 {
-  "name": "Detector de Cartas Pokémon",
-  "short_name": "PokéScan",
-  "description": "Escanea cartas Pokémon con la cámara, identifícalas y gestiona tu colección.",
+  "name": "CardLens",
+  "short_name": "CardLens",
+  "description": "Escanea cartas Pokémon TCG con la cámara, identifícalas y gestiona tu colección.",
   "lang": "es",
   "start_url": "/",
   "scope": "/",

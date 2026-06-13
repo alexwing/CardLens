@@ -1,4 +1,4 @@
-# Pokemon Card Detector — Shell de escritorio y Android (Tauri 2)
+# CardLens — Shell de escritorio y Android (Tauri 2)
 
 Esta carpeta contiene el shell nativo construido con [Tauri 2](https://v2.tauri.app/).
 No tiene interfaz propia: en desarrollo carga la web servida por Vite
@@ -109,7 +109,7 @@ generado (`src-tauri/gen/android/app/src/main/AndroidManifest.xml`):
 
 > **Nota sobre la camara:** `getUserMedia` dentro del WebView de Android puede
 > requerir ademas conceder manualmente el permiso de camara a la app
-> (Ajustes → Aplicaciones → Pokemon Card Detector → Permisos). Si la camara en
+> (Ajustes → Aplicaciones → CardLens → Permisos). Si la camara en
 > vivo no funciona, el modo **Subir** de la web (input de fichero con
 > `capture`) funciona siempre como fallback: abre la camara nativa del sistema.
 

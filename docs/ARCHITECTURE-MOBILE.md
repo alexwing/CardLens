@@ -1,4 +1,4 @@
-# Arquitectura Android on-device para Pokemon Card Detector
+# Arquitectura Android on-device para CardLens (repo: PokemonCardDetector)
 
 Documento de diseño. Fecha: 2026-06-13. Autor: arquitectura.
 
