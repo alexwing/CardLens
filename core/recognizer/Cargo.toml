@@ -48,3 +48,8 @@ download-binaries = ["ort/download-binaries"]
 
 [dev-dependencies]
 approx = "0.5"
+
+# Optimiza dependencias en dev (la app sigue depurable). rten/ocrs son Rust
+# puro y en debug van mucho mas lentos; esto acelera ejemplos y consultas.
+[profile.dev.package."*"]
+opt-level = 3

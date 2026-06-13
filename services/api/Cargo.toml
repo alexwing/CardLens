@@ -21,3 +21,9 @@ tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
+
+# Optimiza las dependencias incluso en build de desarrollo (la app sigue sin
+# optimizar y depurable). Clave para el OCR: rten es Rust puro y en debug va
+# ~20x mas lento; asi `cargo run` (dev) tiene OCR rapido tambien.
+[profile.dev.package."*"]
+opt-level = 3

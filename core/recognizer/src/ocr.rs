@@ -33,6 +33,16 @@ impl OcrReader {
         Ok(Self { engine })
     }
 
+    /// Lee solo la banda superior de la carta (donde esta el nombre). Mucho
+    /// mas rapido que OCR de toda la carta: evita reconocer ataques, habilidad
+    /// y flavor text, que no aportan a la identificacion.
+    pub fn read_name_region(&self, img: &DynamicImage) -> anyhow::Result<String> {
+        let (w, h) = (img.width(), img.height());
+        let band_h = ((h as f32) * 0.24).round().max(1.0) as u32;
+        let region = img.crop_imm(0, 0, w, band_h);
+        self.read_text(&region)
+    }
+
     /// Devuelve todo el texto reconocido en la imagen, en orden de lectura
     /// (lineas separadas por salto de linea).
     pub fn read_text(&self, img: &DynamicImage) -> anyhow::Result<String> {

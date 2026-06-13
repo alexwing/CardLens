@@ -146,7 +146,7 @@ impl RecognizerEngine {
                 Some(reader) => reader
                     .lock()
                     .map_err(|_| anyhow::anyhow!("mutex del OCR envenenado"))?
-                    .read_text(&card)
+                    .read_name_region(&card)
                     .unwrap_or_default(),
                 None => String::new(),
             };
