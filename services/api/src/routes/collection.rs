@@ -1,5 +1,7 @@
 //! GET /api/collection, POST /api/collection/items, DELETE /api/collection/items/{id}
 
+use std::collections::HashMap;
+
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
@@ -11,9 +13,10 @@ use crate::error::ApiError;
 use crate::models::{
     Card, CollectionExport, CollectionExportCard, CollectionExportItem, CollectionImportRequest,
     CollectionImportSummary, CollectionItemResponse, CollectionResponse,
-    CreateCollectionItemRequest, SkippedImportItem, COLLECTION_EXPORT_FORMAT,
+    CreateCollectionItemRequest, SkippedImportItem, TagRef, COLLECTION_EXPORT_FORMAT,
     COLLECTION_EXPORT_VERSION,
 };
+use crate::routes::tags::{upsert_tag_by_name, upsert_tag_by_name_pool, TagNameRequest};
 use crate::AppState;
 
 /// SELECT del JOIN collection_items + cards + sets, ordenado por fecha.
@@ -68,8 +71,40 @@ impl From<CollectionRow> for CollectionItemResponse {
             lang: row.item_lang,
             notes: row.notes,
             created_at: row.created_at,
+            // Las tags se rellenan aparte (ver `tags_by_item`) para evitar N+1.
+            tags: Vec::new(),
         }
     }
+}
+
+/// Fila plana del JOIN collection_item_tags + tags, con el item al que pertenece.
+#[derive(Debug, FromRow)]
+struct ItemTagRow {
+    item_id: String,
+    id: String,
+    name: String,
+}
+
+/// Carga TODAS las asociaciones item-tag de una vez y las agrupa por item_id.
+/// Evita una query por item (N+1). Dentro de cada item las tags van por nombre.
+async fn tags_by_item(pool: &sqlx::SqlitePool) -> Result<HashMap<String, Vec<TagRef>>, ApiError> {
+    let rows = sqlx::query_as::<_, ItemTagRow>(
+        "SELECT cit.item_id, t.id, t.name \
+         FROM collection_item_tags cit \
+         JOIN tags t ON t.id = cit.tag_id \
+         ORDER BY t.name COLLATE NOCASE",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut map: HashMap<String, Vec<TagRef>> = HashMap::new();
+    for row in rows {
+        map.entry(row.item_id).or_default().push(TagRef {
+            id: row.id,
+            name: row.name,
+        });
+    }
+    Ok(map)
 }
 
 /// Lista todos los items de la coleccion con su carta embebida.
@@ -80,9 +115,19 @@ pub async fn list_items(
         .fetch_all(&state.pool)
         .await?;
 
-    Ok(Json(CollectionResponse {
-        items: rows.into_iter().map(Into::into).collect(),
-    }))
+    // Segunda query con todas las tags, agrupadas por item (sin N+1).
+    let mut tags = tags_by_item(&state.pool).await?;
+
+    let items: Vec<CollectionItemResponse> = rows
+        .into_iter()
+        .map(|row| {
+            let mut item: CollectionItemResponse = row.into();
+            item.tags = tags.remove(&item.id).unwrap_or_default();
+            item
+        })
+        .collect();
+
+    Ok(Json(CollectionResponse { items }))
 }
 
 /// Exporta la coleccion completa como documento JSON portable y versionado
@@ -94,20 +139,31 @@ pub async fn export_collection(
         .fetch_all(&state.pool)
         .await?;
 
+    let mut tags = tags_by_item(&state.pool).await?;
+
     let items: Vec<CollectionExportItem> = rows
         .into_iter()
-        .map(|row| CollectionExportItem {
-            card_id: row.card_id,
-            quantity: row.quantity,
-            condition: row.condition,
-            lang: row.item_lang,
-            notes: row.notes,
-            created_at: row.created_at,
-            card: CollectionExportCard {
-                name: row.card_name,
-                set_name: row.set_name,
-                number: row.number,
-            },
+        .map(|row| {
+            let tag_names = tags
+                .remove(&row.id)
+                .unwrap_or_default()
+                .into_iter()
+                .map(|tag| tag.name)
+                .collect();
+            CollectionExportItem {
+                card_id: row.card_id,
+                quantity: row.quantity,
+                condition: row.condition,
+                lang: row.item_lang,
+                notes: row.notes,
+                created_at: row.created_at,
+                card: CollectionExportCard {
+                    name: row.card_name,
+                    set_name: row.set_name,
+                    number: row.number,
+                },
+                tags: tag_names,
+            }
         })
         .collect();
 
@@ -172,6 +228,7 @@ pub async fn import_collection(
         }
 
         // En modo merge, reutiliza el item existente para ese card_id.
+        let mut item_id: Option<String> = None;
         if mode == "merge" {
             let existing_id: Option<String> =
                 sqlx::query_scalar("SELECT id FROM collection_items WHERE card_id = ?1 LIMIT 1")
@@ -192,27 +249,53 @@ pub async fn import_collection(
                 .execute(&mut *tx)
                 .await?;
                 updated += 1;
-                continue;
+                item_id = Some(existing_id);
             }
         }
 
-        let id = Uuid::new_v4().to_string();
-        let created_at = Utc::now().to_rfc3339();
-        sqlx::query(
-            "INSERT INTO collection_items \
-                (id, user_id, card_id, scan_id, quantity, condition, lang, notes, created_at) \
-             VALUES (?1, NULL, ?2, NULL, ?3, ?4, ?5, ?6, ?7)",
-        )
-        .bind(&id)
-        .bind(&item.card_id)
-        .bind(item.quantity)
-        .bind(&item.condition)
-        .bind(&item.lang)
-        .bind(&item.notes)
-        .bind(&created_at)
-        .execute(&mut *tx)
-        .await?;
-        imported += 1;
+        if item_id.is_none() {
+            let id = Uuid::new_v4().to_string();
+            let created_at = Utc::now().to_rfc3339();
+            sqlx::query(
+                "INSERT INTO collection_items \
+                    (id, user_id, card_id, scan_id, quantity, condition, lang, notes, created_at) \
+                 VALUES (?1, NULL, ?2, NULL, ?3, ?4, ?5, ?6, ?7)",
+            )
+            .bind(&id)
+            .bind(&item.card_id)
+            .bind(item.quantity)
+            .bind(&item.condition)
+            .bind(&item.lang)
+            .bind(&item.notes)
+            .bind(&created_at)
+            .execute(&mut *tx)
+            .await?;
+            imported += 1;
+            item_id = Some(id);
+        }
+
+        // Reasocia las tags por nombre (creandolas si no existen). Se vacian
+        // primero las asociaciones del item para que reimportar sea idempotente.
+        // Los nombres en blanco se ignoran.
+        let item_id = item_id.expect("item_id resuelto arriba");
+        sqlx::query("DELETE FROM collection_item_tags WHERE item_id = ?1")
+            .bind(&item_id)
+            .execute(&mut *tx)
+            .await?;
+        for tag_name in &item.tags {
+            if tag_name.trim().is_empty() {
+                continue;
+            }
+            // &mut *tx desreferencia la transaccion a su conexion subyacente.
+            let tag = upsert_tag_by_name(&mut tx, tag_name).await?;
+            sqlx::query(
+                "INSERT OR IGNORE INTO collection_item_tags (item_id, tag_id) VALUES (?1, ?2)",
+            )
+            .bind(&item_id)
+            .bind(&tag.id)
+            .execute(&mut *tx)
+            .await?;
+        }
     }
 
     tx.commit().await?;
@@ -280,6 +363,7 @@ pub async fn create_item(
         lang: body.lang,
         notes: body.notes,
         created_at,
+        tags: Vec::new(),
     };
     Ok((StatusCode::CREATED, Json(item)))
 }
@@ -298,5 +382,48 @@ pub async fn delete_item(
             "item de coleccion no encontrado: {id}"
         )));
     }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Asocia una etiqueta (por nombre) a un item de coleccion. Crea o reutiliza la
+/// tag por nombre (case-insensitive) y es idempotente respecto a la asociacion.
+/// 404 si el item no existe. Responde 200 con {id,name} de la tag.
+pub async fn add_item_tag(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<TagNameRequest>,
+) -> Result<Json<TagRef>, ApiError> {
+    let item_exists: Option<String> =
+        sqlx::query_scalar("SELECT id FROM collection_items WHERE id = ?1")
+            .bind(&id)
+            .fetch_optional(&state.pool)
+            .await?;
+    if item_exists.is_none() {
+        return Err(ApiError::NotFound(format!(
+            "item de coleccion no encontrado: {id}"
+        )));
+    }
+
+    let tag = upsert_tag_by_name_pool(&state.pool, &body.name).await?;
+    sqlx::query("INSERT OR IGNORE INTO collection_item_tags (item_id, tag_id) VALUES (?1, ?2)")
+        .bind(&id)
+        .bind(&tag.id)
+        .execute(&state.pool)
+        .await?;
+
+    Ok(Json(tag))
+}
+
+/// Quita la asociacion de una etiqueta con un item de coleccion. La tag en si
+/// no se borra (puede seguir usandose en otros items). Responde 204.
+pub async fn remove_item_tag(
+    State(state): State<AppState>,
+    Path((id, tag_id)): Path<(String, String)>,
+) -> Result<StatusCode, ApiError> {
+    sqlx::query("DELETE FROM collection_item_tags WHERE item_id = ?1 AND tag_id = ?2")
+        .bind(&id)
+        .bind(&tag_id)
+        .execute(&state.pool)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }

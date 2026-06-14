@@ -7,6 +7,7 @@ pub mod prices;
 pub mod scan;
 pub mod scans;
 pub mod sets;
+pub mod tags;
 
 use axum::routing::{delete, get, post};
 use axum::Router;
@@ -26,5 +27,15 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/collection/import", post(collection::import_collection))
         .route("/api/collection/items", post(collection::create_item))
         .route("/api/collection/items/{id}", delete(collection::delete_item))
+        .route(
+            "/api/collection/items/{id}/tags",
+            post(collection::add_item_tag),
+        )
+        .route(
+            "/api/collection/items/{id}/tags/{tag_id}",
+            delete(collection::remove_item_tag),
+        )
+        .route("/api/tags", get(tags::list_tags).post(tags::create_tag))
+        .route("/api/tags/{id}", delete(tags::delete_tag))
         .route("/api/prices/{card_id}", get(prices::get_prices))
 }

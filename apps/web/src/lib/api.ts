@@ -15,6 +15,8 @@ import type {
   PricesResponse,
   ScanResponse,
   SetInfo,
+  TagRef,
+  TagWithCount,
 } from './types';
 
 export const API_BASE: string = import.meta.env.VITE_API_URL || 'http://localhost:8787';
@@ -95,6 +97,42 @@ export function importCollection(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mode, items }),
   });
+}
+
+/** Lista de etiquetas con el numero de items que usan cada una. */
+export function getTags(): Promise<TagWithCount[]> {
+  return request<TagWithCount[]>('/api/tags');
+}
+
+/** Crea una etiqueta (o devuelve la existente, case-insensitive). */
+export function createTag(name: string): Promise<TagRef> {
+  return request<TagRef>('/api/tags', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+}
+
+/** Elimina una etiqueta y todas sus asociaciones (cascade). */
+export function deleteTag(id: string): Promise<void> {
+  return request<void>(`/api/tags/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** Asocia una etiqueta (por nombre) a un item; crea la tag si no existe. */
+export function addItemTag(itemId: string, name: string): Promise<TagRef> {
+  return request<TagRef>(`/api/collection/items/${encodeURIComponent(itemId)}/tags`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+}
+
+/** Quita la asociacion de una etiqueta con un item (no borra la tag). */
+export function removeItemTag(itemId: string, tagId: string): Promise<void> {
+  return request<void>(
+    `/api/collection/items/${encodeURIComponent(itemId)}/tags/${encodeURIComponent(tagId)}`,
+    { method: 'DELETE' },
+  );
 }
 
 /** Precios cacheados de una carta. */

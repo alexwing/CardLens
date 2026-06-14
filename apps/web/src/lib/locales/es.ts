@@ -96,6 +96,33 @@ const es = {
   'collection.mode.merge': 'combinar',
   'collection.mode.replace': 'reemplazar',
 
+  // Filtros de la coleccion
+  'filters.search': 'Buscar por nombre',
+  'filters.searchPlaceholder': 'Nombre de la carta…',
+  'filters.tags': 'Etiquetas',
+  'filters.all': 'Todo',
+  'filters.set': 'Set',
+  'filters.rarity': 'Rareza',
+  'filters.type': 'Tipo',
+  'filters.lang': 'Idioma',
+  'filters.allSets': 'Todos los sets',
+  'filters.allRarities': 'Todas las rarezas',
+  'filters.allTypes': 'Todos los tipos',
+  'filters.allLangs': 'Todos los idiomas',
+  'filters.clear': 'Limpiar filtros',
+  'filters.noResults': 'Ninguna carta coincide con los filtros.',
+  'filters.resultCount.one': '1 carta coincide',
+  'filters.resultCount.other': '{count} cartas coinciden',
+
+  // Etiquetas en las cartas
+  'tags.add': '+ etiqueta',
+  'tags.addPlaceholder': 'Nueva o existente…',
+  'tags.addConfirm': 'Añadir',
+  'tags.cancel': 'Cancelar',
+  'tags.removeAria': 'Quitar etiqueta {name}',
+  'tags.addError': 'No se pudo añadir la etiqueta. Inténtalo de nuevo.',
+  'tags.removeError': 'No se pudo quitar la etiqueta. Inténtalo de nuevo.',
+
   // Barra de confianza
   'confidence.aria': 'Confianza {percent}%',
 };

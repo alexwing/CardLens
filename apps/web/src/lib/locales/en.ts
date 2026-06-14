@@ -98,6 +98,33 @@ const en: Record<TranslationKey, string> = {
   'collection.mode.merge': 'merge',
   'collection.mode.replace': 'replace',
 
+  // Collection filters
+  'filters.search': 'Search by name',
+  'filters.searchPlaceholder': 'Card name…',
+  'filters.tags': 'Tags',
+  'filters.all': 'All',
+  'filters.set': 'Set',
+  'filters.rarity': 'Rarity',
+  'filters.type': 'Type',
+  'filters.lang': 'Language',
+  'filters.allSets': 'All sets',
+  'filters.allRarities': 'All rarities',
+  'filters.allTypes': 'All types',
+  'filters.allLangs': 'All languages',
+  'filters.clear': 'Clear filters',
+  'filters.noResults': 'No card matches the filters.',
+  'filters.resultCount.one': '1 card matches',
+  'filters.resultCount.other': '{count} cards match',
+
+  // Tags on cards
+  'tags.add': '+ tag',
+  'tags.addPlaceholder': 'New or existing…',
+  'tags.addConfirm': 'Add',
+  'tags.cancel': 'Cancel',
+  'tags.removeAria': 'Remove tag {name}',
+  'tags.addError': 'Could not add the tag. Try again.',
+  'tags.removeError': 'Could not remove the tag. Try again.',
+
   // Confidence bar
   'confidence.aria': 'Confidence {percent}%',
 };

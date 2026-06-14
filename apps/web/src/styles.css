@@ -608,6 +608,205 @@ a:hover {
   font-weight: 700;
 }
 
+/* ---------- Barra de filtros de la coleccion ---------- */
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.filters-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.filters-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.filters-search input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.filters-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filters-clear {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.filters-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filters-selects {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.filters-selects select {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+.filters-selects select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filters-result-count {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ---------- Chips de etiqueta ---------- */
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 10px;
+}
+
+.filter-chip {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.filter-chip:hover {
+  border-color: var(--accent);
+}
+
+.filter-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.tag-count {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.tag-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tag-chip-remove:hover {
+  color: var(--danger);
+}
+
+.tag-chip-add-toggle {
+  cursor: pointer;
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+.tag-chip-add-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.collection-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tag-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tag-editor input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  width: 130px;
+}
+
+.tag-editor input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.tag-chip-add,
+.tag-chip-cancel {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.tag-chip-add {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.tag-chip-cancel:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ---------- Coleccion ---------- */
 .collection-list {
   list-style: none;
@@ -752,5 +951,9 @@ a:hover {
 
   .camera-frame {
     aspect-ratio: 4 / 3;
+  }
+
+  .filters-selects {
+    grid-template-columns: repeat(4, 1fr);
   }
 }

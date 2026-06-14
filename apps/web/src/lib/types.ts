@@ -47,6 +47,19 @@ export interface SetInfo {
   lang: string;
 }
 
+/** Referencia ligera a una etiqueta (id + nombre), embebida en los items. */
+export interface TagRef {
+  id: string;
+  name: string;
+}
+
+/** Etiqueta con el numero de items que la usan (GET /api/tags). */
+export interface TagWithCount {
+  id: string;
+  name: string;
+  count: number;
+}
+
 /** Elemento de la coleccion (GET /api/collection). */
 export interface CollectionItem {
   id: string;
@@ -56,6 +69,7 @@ export interface CollectionItem {
   lang: string | null;
   notes: string | null;
   created_at: string;
+  tags: TagRef[];
 }
 
 /** Cotizacion de precio de una fuente (GET /api/prices/{card_id}). */
@@ -129,6 +143,8 @@ export interface CollectionExportItem {
   notes: string | null;
   created_at: string;
   card: CollectionExportCard;
+  /** Nombres de las etiquetas asociadas (se reasocian por nombre al importar). */
+  tags?: string[];
 }
 
 /** Documento de GET /api/collection/export (y entrada de la importacion). */

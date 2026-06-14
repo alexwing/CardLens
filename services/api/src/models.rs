@@ -147,6 +147,21 @@ pub struct CandidateResponse {
     pub ocr_score: f64,
 }
 
+/// Referencia ligera a una etiqueta (id + nombre), embebida en los items.
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct TagRef {
+    pub id: String,
+    pub name: String,
+}
+
+/// Etiqueta con el numero de items que la usan (GET /api/tags).
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct TagWithCount {
+    pub id: String,
+    pub name: String,
+    pub count: i64,
+}
+
 /// Item de coleccion con la carta embebida (GET/POST /api/collection*).
 #[derive(Debug, Serialize)]
 pub struct CollectionItemResponse {
@@ -157,6 +172,7 @@ pub struct CollectionItemResponse {
     pub lang: Option<String>,
     pub notes: Option<String>,
     pub created_at: String,
+    pub tags: Vec<TagRef>,
 }
 
 /// Respuesta de GET /api/collection.
@@ -220,6 +236,8 @@ pub struct CollectionExportItem {
     pub notes: Option<String>,
     pub created_at: String,
     pub card: CollectionExportCard,
+    /// Nombres de las etiquetas asociadas (se reasocian por nombre al importar).
+    pub tags: Vec<String>,
 }
 
 /// Documento de exportacion (GET /api/collection/export).
@@ -246,6 +264,10 @@ pub struct CollectionImportItem {
     pub lang: Option<String>,
     #[serde(default)]
     pub notes: Option<String>,
+    /// Nombres de etiquetas a reasociar tras crear/actualizar el item. Los
+    /// items sin este campo (formato antiguo) simplemente no tienen tags.
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 /// Body de POST /api/collection/import. Acepta el mismo documento que produce
