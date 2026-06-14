@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import type { Card, PriceQuote } from '../lib/types';
-import { getCard, getPrices, imageSrc } from '../lib/api';
+import { useNavigate, useParams } from 'react-router-dom';
+import type { Card, CollectionItem, PriceQuote } from '../lib/types';
+import { getCard, getCollection, getPrices, imageSrc, updateCollectionItem } from '../lib/api';
 import { intlLocale, useT } from '../lib/i18n';
+
+type NoteState = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
  * Detalle de una carta: imagen oficial, metadata del catalogo y precios.
- * Si no hay fuente de precios configurada (lista vacia) muestra un estado
- * vacio elegante.
+ * Si la carta esta en la coleccion, permite editar su nota personal.
  */
 export default function CardPage() {
   const { t, locale } = useT();
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [card, setCard] = useState<Card | null>(null);
   const [prices, setPrices] = useState<PriceQuote[] | null>(null);
   const [hasError, setHasError] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Item de coleccion para esta carta (si esta guardada) y edicion de su nota.
+  const [collectionItem, setCollectionItem] = useState<CollectionItem | null>(null);
+  const [note, setNote] = useState('');
+  const [noteState, setNoteState] = useState<NoteState>('idle');
 
   useEffect(() => {
     if (!id) return;
@@ -24,28 +30,38 @@ export default function CardPage() {
     async function load(cardId: string) {
       setLoading(true);
       setHasError(false);
+      setCollectionItem(null);
+      setNote('');
+      setNoteState('idle');
       try {
         const cardData = await getCard(cardId);
         if (cancelled) return;
         setCard(cardData);
-        try {
-          const priceData = await getPrices(cardId);
-          if (!cancelled) {
-            setPrices(priceData.prices);
-          }
-        } catch {
-          if (!cancelled) {
-            setPrices([]);
-          }
-        }
+
+        // Precios (no bloqueante).
+        getPrices(cardId)
+          .then((priceData) => {
+            if (!cancelled) setPrices(priceData.prices);
+          })
+          .catch(() => {
+            if (!cancelled) setPrices([]);
+          });
+
+        // ¿Esta en la coleccion? Si lo esta, cargamos su nota.
+        getCollection()
+          .then((collection) => {
+            if (cancelled) return;
+            const item = collection.items.find((entry) => entry.card.id === cardId) ?? null;
+            setCollectionItem(item);
+            setNote(item?.notes ?? '');
+          })
+          .catch(() => {
+            if (!cancelled) setCollectionItem(null);
+          });
       } catch {
-        if (!cancelled) {
-          setHasError(true);
-        }
+        if (!cancelled) setHasError(true);
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -64,12 +80,24 @@ export default function CardPage() {
     }
   }
 
+  async function saveNote() {
+    if (!collectionItem) return;
+    setNoteState('saving');
+    try {
+      const updated = await updateCollectionItem(collectionItem.id, { notes: note });
+      setCollectionItem(updated);
+      setNoteState('saved');
+    } catch {
+      setNoteState('error');
+    }
+  }
+
   return (
     <div className="page card-page">
       <header className="page-header">
-        <Link to="/coleccion" className="back-link">
+        <button type="button" className="back-link" onClick={() => navigate(-1)}>
           {t('card.back')}
-        </Link>
+        </button>
       </header>
 
       {loading && (
@@ -97,6 +125,7 @@ export default function CardPage() {
             )}
             <div className="card-detail-info">
               <h1>{card.name}</h1>
+              {collectionItem && <span className="badge-collection">{t('card.inCollection')}</span>}
               <dl className="card-detail-meta">
                 <div>
                   <dt>{t('card.meta.set')}</dt>
@@ -154,6 +183,38 @@ export default function CardPage() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </section>
+
+          <section className="note-section">
+            <h2>{t('card.note.title')}</h2>
+            {collectionItem ? (
+              <>
+                <textarea
+                  className="note-textarea"
+                  value={note}
+                  rows={4}
+                  placeholder={t('card.note.placeholder')}
+                  onChange={(event) => {
+                    setNote(event.target.value);
+                    if (noteState !== 'idle') setNoteState('idle');
+                  }}
+                />
+                <div className="note-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void saveNote()}
+                    disabled={noteState === 'saving'}
+                  >
+                    {noteState === 'saving' ? t('card.note.saving') : t('card.note.save')}
+                  </button>
+                  {noteState === 'saved' && <span className="success-text">{t('card.note.saved')}</span>}
+                  {noteState === 'error' && <span className="error-text">{t('card.note.error')}</span>}
+                </div>
+              </>
+            ) : (
+              <p className="hint">{t('card.note.addToCollection')}</p>
             )}
           </section>
         </>

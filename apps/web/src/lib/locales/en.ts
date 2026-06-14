@@ -5,6 +5,7 @@ import type { TranslationKey } from './es';
 const en: Record<TranslationKey, string> = {
   // Navigation and header
   'nav.scan': 'Scan',
+  'nav.search': 'Search',
   'nav.collection': 'Collection',
   'nav.ariaLabel': 'Main navigation',
   'lang.ariaLabel': 'Language',
@@ -50,7 +51,11 @@ const en: Record<TranslationKey, string> = {
   'result.alreadyInCollection': 'This card is already in your collection.',
   'result.savedText': 'Card added.',
   'result.viewCollection': 'View collection',
+  'result.viewCard': 'View card',
   'result.saveError': 'Could not save the card. Try again.',
+  'result.prices': 'Reference prices',
+  'result.prices.loading': 'Loading prices…',
+  'result.prices.empty': 'No prices available for this card.',
 
   // Card detail
   'card.back': '← Back',
@@ -62,13 +67,33 @@ const en: Record<TranslationKey, string> = {
   'card.meta.type': 'Type',
   'card.prices': 'Prices',
   'card.prices.loading': 'Loading prices…',
-  'card.prices.empty': 'No price source configured.',
-  'card.prices.emptyHint': 'Configure a price provider in the API (PRICE_PROVIDER) to see quotes here.',
+  'card.prices.empty': 'No prices available for this card.',
+  'card.prices.emptyHint': 'TCGdex has no quotes for this card right now.',
   'card.prices.source': 'Source',
   'card.prices.market': 'Market',
   'card.prices.low': 'Low',
   'card.prices.high': 'High',
   'card.prices.trend': 'Trend',
+
+  // Card note in the collection
+  'card.inCollection': 'In your collection',
+  'card.note.title': 'My note',
+  'card.note.placeholder': 'Add a note for this card (condition, where you keep it, sentimental value…)',
+  'card.note.save': 'Save note',
+  'card.note.saving': 'Saving…',
+  'card.note.saved': 'Note saved ✓',
+  'card.note.error': 'Could not save the note. Try again.',
+  'card.note.addToCollection': 'Add this card to your collection to take notes on it.',
+
+  // Card search
+  'search.title': 'Search cards',
+  'search.subtitle': 'Find a card by name, number or set.',
+  'search.placeholder': 'Name, number or set…',
+  'search.minChars': 'Type at least 2 characters to search.',
+  'search.searching': 'Searching…',
+  'search.empty': 'No results for "{q}".',
+  'search.error': 'Search failed. Make sure the API is running.',
+  'search.resultsHint': 'Showing up to 10 results.',
 
   // Collection
   'collection.title': 'My collection',

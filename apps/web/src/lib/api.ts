@@ -17,6 +17,7 @@ import type {
   SetInfo,
   TagRef,
   TagWithCount,
+  UpdateCollectionItemPayload,
 } from './types';
 
 export const API_BASE: string = import.meta.env.VITE_API_URL || 'http://localhost:8787';
@@ -87,6 +88,18 @@ export function addToCollection(payload: AddCollectionItemPayload): Promise<Coll
 /** Elimina un item de la coleccion (204). */
 export function removeFromCollection(id: string): Promise<void> {
   return request<void>(`/api/collection/items/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** Actualiza un item de la coleccion (nota, cantidad, estado). Devuelve el item. */
+export function updateCollectionItem(
+  id: string,
+  payload: UpdateCollectionItemPayload,
+): Promise<CollectionItem> {
+  return request<CollectionItem>(`/api/collection/items/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }
 
 /** Descarga la coleccion como documento JSON portable y versionado. */

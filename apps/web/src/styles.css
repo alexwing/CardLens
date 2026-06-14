@@ -57,7 +57,7 @@ a:hover {
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 16px 16px calc(var(--nav-height) + 24px);
+  padding: 16px 16px calc(var(--nav-height) + env(safe-area-inset-bottom) + 24px);
 }
 
 .bottom-nav {
@@ -65,7 +65,10 @@ a:hover {
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--nav-height);
+  /* La altura util de los iconos es --nav-height; el inset de la barra de
+     gestos/sistema se suma como espacio extra debajo (no come la altura util),
+     asi los botones no quedan tapados por la barra del dispositivo. */
+  height: calc(var(--nav-height) + env(safe-area-inset-bottom));
   display: flex;
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);
@@ -956,4 +959,176 @@ a:hover {
   .filters-selects {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+/* ---------- Precios en el resultado del escaneo ---------- */
+.result-prices {
+  margin-top: 12px;
+}
+
+.result-prices h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.result-prices-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-prices-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+.price-source {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.price-value {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ---------- Nota de la carta en la coleccion ---------- */
+.badge-collection {
+  display: inline-block;
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  margin-bottom: 12px;
+}
+
+.note-section {
+  margin-top: 24px;
+}
+
+.note-section h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.note-textarea {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 12px;
+  resize: vertical;
+  min-height: 88px;
+}
+
+.note-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.note-actions .success-text,
+.note-actions .error-text {
+  margin: 0;
+}
+
+/* ---------- Buscador de cartas ---------- */
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.search-input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 16px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.search-results {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  color: var(--text);
+}
+
+.search-result:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.search-result-thumb {
+  width: 44px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  display: block;
+}
+
+.search-result-thumb.card-tile-placeholder {
+  aspect-ratio: 63 / 88;
+  font-size: 16px;
+}
+
+.search-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.search-result-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.search-result-meta {
+  color: var(--text-muted);
+  font-size: 12px;
 }

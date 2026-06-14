@@ -119,6 +119,13 @@ export interface AddCollectionItemPayload {
   notes: string | null;
 }
 
+/** Cuerpo de PATCH /api/collection/items/{id} (editar nota, cantidad, estado). */
+export interface UpdateCollectionItemPayload {
+  notes?: string | null;
+  quantity?: number;
+  condition?: string | null;
+}
+
 /** Parametros de consulta de GET /api/cards. */
 export interface CardQueryParams {
   q?: string;

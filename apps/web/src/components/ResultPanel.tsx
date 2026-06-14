@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ScanCandidateView, ScanResponse } from '../lib/types';
-import { addToCollection, ApiRequestError, getCollection, imageSrc } from '../lib/api';
-import { useT } from '../lib/i18n';
+import type { PriceQuote, ScanCandidateView, ScanResponse } from '../lib/types';
+import { addToCollection, ApiRequestError, getCollection, getPrices, imageSrc } from '../lib/api';
+import { intlLocale, useT } from '../lib/i18n';
 import CardTile from './CardTile';
 import ConfidenceBar from './ConfidenceBar';
 
 /**
- * Panel de resultado de un escaneo: mejor candidato con su confianza,
- * alternativas clicables si la confianza es baja y boton para guardar
- * la carta elegida en la coleccion.
+ * Panel de resultado de un escaneo: mejor candidato con su confianza, precios
+ * orientativos de la carta seleccionada, alternativas clicables si la confianza
+ * es baja y boton para guardar la carta elegida en la coleccion.
  */
 interface ResultPanelProps {
   result: ScanResponse;
@@ -18,19 +18,39 @@ interface ResultPanelProps {
 type SaveState = 'idle' | 'saving' | 'saved' | 'exists' | 'error';
 
 export default function ResultPanel({ result }: ResultPanelProps) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [selected, setSelected] = useState<ScanCandidateView | null>(
     result.candidates.length > 0 ? result.candidates[0] : null
   );
   const [saveState, setSaveState] = useState<SaveState>('idle');
   // IDs de cartas ya en la coleccion, para avisar ANTES de pulsar Guardar.
   const [collectionIds, setCollectionIds] = useState<Set<string> | null>(null);
+  // Precios de la carta seleccionada (null = cargando).
+  const [prices, setPrices] = useState<PriceQuote[] | null>(null);
 
   useEffect(() => {
     getCollection()
       .then((response) => setCollectionIds(new Set(response.items.map((item) => item.card.id))))
       .catch(() => setCollectionIds(new Set()));
   }, []);
+
+  // Carga los precios cada vez que cambia la carta seleccionada.
+  const selectedId = selected?.card.id;
+  useEffect(() => {
+    if (!selectedId) return;
+    let cancelled = false;
+    setPrices(null);
+    getPrices(selectedId)
+      .then((data) => {
+        if (!cancelled) setPrices(data.prices);
+      })
+      .catch(() => {
+        if (!cancelled) setPrices([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId]);
 
   if (!result.best || !selected) {
     return (
@@ -47,6 +67,16 @@ export default function ResultPanel({ result }: ResultPanelProps) {
   const alreadyInCollection = collectionIds?.has(card.id) ?? false;
   const effectiveState: SaveState =
     saveState !== 'idle' ? saveState : alreadyInCollection ? 'exists' : 'idle';
+  const cardHref = `/carta/${encodeURIComponent(card.id)}`;
+
+  function formatMoney(value: number | null, currency: string): string {
+    if (value === null || value === undefined) return '—';
+    try {
+      return new Intl.NumberFormat(intlLocale(locale), { style: 'currency', currency }).format(value);
+    } catch {
+      return `${value.toFixed(2)} ${currency}`;
+    }
+  }
 
   async function handleSave() {
     if (!selected) return;
@@ -93,7 +123,7 @@ export default function ResultPanel({ result }: ResultPanelProps) {
         )}
         <div className="best-card-info">
           <h3>
-            <Link to={`/carta/${encodeURIComponent(card.id)}`}>{card.name}</Link>
+            <Link to={cardHref}>{card.name}</Link>
           </h3>
           <p className="best-card-meta">
             {t('common.setNumber', { set: card.set_name ?? card.set_id, number: card.number })}
@@ -105,6 +135,26 @@ export default function ResultPanel({ result }: ResultPanelProps) {
           <div className="best-card-confidence">
             <span className="label">{t('common.confidence')}</span>
             <ConfidenceBar value={selected.confidence} />
+          </div>
+
+          <div className="result-prices">
+            <h4>{t('result.prices')}</h4>
+            {prices === null && <p className="hint">{t('result.prices.loading')}</p>}
+            {prices !== null && prices.length === 0 && (
+              <p className="hint">{t('result.prices.empty')}</p>
+            )}
+            {prices !== null && prices.length > 0 && (
+              <ul className="result-prices-list">
+                {prices.map((quote) => (
+                  <li key={quote.source}>
+                    <span className="price-source">{quote.source}</span>
+                    <span className="price-value">
+                      {formatMoney(quote.market ?? quote.trend ?? quote.low, quote.currency)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>
@@ -148,12 +198,18 @@ export default function ResultPanel({ result }: ResultPanelProps) {
         </button>
         {effectiveState === 'saved' && (
           <p className="success-text">
-            {t('result.savedText')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
+            {t('result.savedText')}{' '}
+            <Link to={cardHref}>{t('result.viewCard')}</Link>
+            {' · '}
+            <Link to="/coleccion">{t('result.viewCollection')}</Link>
           </p>
         )}
         {effectiveState === 'exists' && (
           <p className="success-text">
-            {t('result.alreadyInCollection')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
+            {t('result.alreadyInCollection')}{' '}
+            <Link to={cardHref}>{t('result.viewCard')}</Link>
+            {' · '}
+            <Link to="/coleccion">{t('result.viewCollection')}</Link>
           </p>
         )}
         {effectiveState === 'error' && <p className="error-text">{t('result.saveError')}</p>}

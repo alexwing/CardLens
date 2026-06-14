@@ -3,6 +3,7 @@
 const es = {
   // Navegacion y cabecera
   'nav.scan': 'Escanear',
+  'nav.search': 'Buscar',
   'nav.collection': 'Colección',
   'nav.ariaLabel': 'Navegación principal',
   'lang.ariaLabel': 'Idioma',
@@ -48,7 +49,11 @@ const es = {
   'result.alreadyInCollection': 'Esta carta ya estaba en tu colección.',
   'result.savedText': 'Carta añadida.',
   'result.viewCollection': 'Ver colección',
+  'result.viewCard': 'Ver ficha',
   'result.saveError': 'No se pudo guardar la carta. Inténtalo de nuevo.',
+  'result.prices': 'Precios orientativos',
+  'result.prices.loading': 'Cargando precios…',
+  'result.prices.empty': 'Sin precios disponibles para esta carta.',
 
   // Detalle de carta
   'card.back': '← Volver',
@@ -60,13 +65,33 @@ const es = {
   'card.meta.type': 'Tipo',
   'card.prices': 'Precios',
   'card.prices.loading': 'Cargando precios…',
-  'card.prices.empty': 'Sin fuente de precios configurada.',
-  'card.prices.emptyHint': 'Configura un proveedor de precios en la API (PRICE_PROVIDER) para ver cotizaciones aquí.',
+  'card.prices.empty': 'Sin precios disponibles para esta carta.',
+  'card.prices.emptyHint': 'TCGdex no tiene cotizaciones para esta carta ahora mismo.',
   'card.prices.source': 'Fuente',
   'card.prices.market': 'Mercado',
   'card.prices.low': 'Mínimo',
   'card.prices.high': 'Máximo',
   'card.prices.trend': 'Tendencia',
+
+  // Nota de la carta en la coleccion
+  'card.inCollection': 'En tu colección',
+  'card.note.title': 'Mi nota',
+  'card.note.placeholder': 'Añade una nota para esta carta (estado, dónde la guardas, valor sentimental…)',
+  'card.note.save': 'Guardar nota',
+  'card.note.saving': 'Guardando…',
+  'card.note.saved': 'Nota guardada ✓',
+  'card.note.error': 'No se pudo guardar la nota. Inténtalo de nuevo.',
+  'card.note.addToCollection': 'Añade esta carta a tu colección para poder anotarla.',
+
+  // Buscador de cartas
+  'search.title': 'Buscar cartas',
+  'search.subtitle': 'Encuentra una carta por nombre, número o set.',
+  'search.placeholder': 'Nombre, número o set…',
+  'search.minChars': 'Escribe al menos 2 caracteres para buscar.',
+  'search.searching': 'Buscando…',
+  'search.empty': 'Sin resultados para «{q}».',
+  'search.error': 'No se pudo buscar. Comprueba que la API está en marcha.',
+  'search.resultsHint': 'Se muestran hasta 10 resultados.',
 
   // Coleccion
   'collection.title': 'Mi colección',
