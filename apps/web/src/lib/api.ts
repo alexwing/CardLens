@@ -146,13 +146,24 @@ export function health(): Promise<HealthResponse> {
 }
 
 /**
- * URL de imagen para una carta: prioriza la copia local servida por la API
- * (/images/*) y cae a la URL oficial remota si no hay copia local.
+ * URL de imagen para una carta. Orden de preferencia:
+ *  1. VITE_IMAGE_BASE (tu CDN, p. ej. https://cardlens.mappuzzle.xyz/catalog):
+ *     se construye `${base}/${card_id}.png`. Para self-hosting de las imagenes.
+ *  2. image_url remota (TCGdex): fiable y disponible siempre (online). Es lo
+ *     que usa el ejecutable empaquetado, que no lleva imagenes locales.
+ *  3. image_local servida por la API (/images/*): util en desarrollo local.
  */
 export function imageSrc(card: Card): string {
+  const cdn = import.meta.env.VITE_IMAGE_BASE as string | undefined;
+  if (cdn && cdn.trim()) {
+    return `${cdn.replace(/\/+$/, '')}/${encodeURIComponent(card.id)}.png`;
+  }
+  if (card.image_url) {
+    return card.image_url;
+  }
   if (card.image_local) {
     const path = card.image_local.startsWith('/') ? card.image_local : `/${card.image_local}`;
     return `${API_BASE}${path}`;
   }
-  return card.image_url ?? '';
+  return '';
 }

@@ -21,6 +21,10 @@ data/*
 models/
 runtime/
 
+# Staging del empaquetado de escritorio (se genera con stage-desktop-resources.ps1)
+apps/desktop/src-tauri/binaries/
+apps/desktop/src-tauri/resources/
+
 # Sistema y logs
 .DS_Store
 *.log

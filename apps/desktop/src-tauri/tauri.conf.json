@@ -23,6 +23,17 @@
     }
   },
   "bundle": {
-    "active": false
+    "active": true,
+    "targets": ["nsis"],
+    "externalBin": ["binaries/cardlens-api"],
+    "resources": [
+      "resources/onnxruntime.dll",
+      "resources/app.db",
+      "resources/mobileclip2_s0/vision_model.onnx",
+      "resources/index/mobileclip.bin",
+      "resources/index/mobileclip_cards.json",
+      "resources/ocrs/text-detection.rten",
+      "resources/ocrs/text-recognition.rten"
+    ]
   }
 }
