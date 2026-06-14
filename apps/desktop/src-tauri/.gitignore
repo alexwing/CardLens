@@ -1,5 +1,10 @@
 # Artefactos de compilacion de Cargo
 /target/
 
-# Codigo generado por Tauri (esquemas de capabilities, proyectos android/ios)
-/gen/
+# Codigo generado por Tauri. Se ignora todo salvo el proyecto Android, que
+# lleva personalizaciones versionadas (AndroidManifest con CAMARA, noCompress en
+# build.gradle.kts, MainActivity que extrae los assets). Dentro de gen/android,
+# los artefactos de build y los binarios pesados (jniLibs *.so, assets/cardlens)
+# se ignoran via gen/android/.gitignore y gen/android/app/.gitignore.
+/gen/*
+!/gen/android/

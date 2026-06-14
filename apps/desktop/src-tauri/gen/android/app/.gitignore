@@ -1,0 +1,9 @@
+/src/main/**/generated
+/src/main/jniLibs/**/*.so
+# Assets pesados (modelo/indice/OCR/DB ~138 MB) preparados con
+# scripts/stage-android-resources.ps1. Artefactos grandes, no versionar.
+/src/main/assets/cardlens/
+/src/main/assets/tauri.conf.json
+/tauri.build.gradle.kts
+/proguard-tauri.pro
+/tauri.properties
