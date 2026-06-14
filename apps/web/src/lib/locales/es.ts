@@ -53,7 +53,7 @@ const es = {
   'result.saveError': 'No se pudo guardar la carta. Inténtalo de nuevo.',
   'result.prices': 'Precios orientativos',
   'result.prices.loading': 'Cargando precios…',
-  'result.prices.empty': 'Sin precios disponibles para esta carta.',
+  'result.prices.empty': 'Sin precio de mercado para esta carta.',
 
   // Detalle de carta
   'card.back': '← Volver',
@@ -65,8 +65,8 @@ const es = {
   'card.meta.type': 'Tipo',
   'card.prices': 'Precios',
   'card.prices.loading': 'Cargando precios…',
-  'card.prices.empty': 'Sin precios disponibles para esta carta.',
-  'card.prices.emptyHint': 'TCGdex no tiene cotizaciones para esta carta ahora mismo.',
+  'card.prices.empty': 'Sin precio de mercado para esta carta.',
+  'card.prices.emptyHint': 'Algunas cartas (p. ej. de Pokémon TCG Pocket o promocionales) no cotizan en Cardmarket ni TCGplayer.',
   'card.prices.source': 'Fuente',
   'card.prices.market': 'Mercado',
   'card.prices.low': 'Mínimo',

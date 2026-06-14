@@ -55,7 +55,7 @@ const en: Record<TranslationKey, string> = {
   'result.saveError': 'Could not save the card. Try again.',
   'result.prices': 'Reference prices',
   'result.prices.loading': 'Loading prices…',
-  'result.prices.empty': 'No prices available for this card.',
+  'result.prices.empty': 'No market price for this card.',
 
   // Card detail
   'card.back': '← Back',
@@ -67,8 +67,8 @@ const en: Record<TranslationKey, string> = {
   'card.meta.type': 'Type',
   'card.prices': 'Prices',
   'card.prices.loading': 'Loading prices…',
-  'card.prices.empty': 'No prices available for this card.',
-  'card.prices.emptyHint': 'TCGdex has no quotes for this card right now.',
+  'card.prices.empty': 'No market price for this card.',
+  'card.prices.emptyHint': 'Some cards (e.g. Pokémon TCG Pocket or promos) are not listed on Cardmarket or TCGplayer.',
   'card.prices.source': 'Source',
   'card.prices.market': 'Market',
   'card.prices.low': 'Low',
