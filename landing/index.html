@@ -9,6 +9,7 @@
       content="CardLens: escanea cartas Pokémon TCG con la cámara, identifícalas al instante y gestiona tu colección. Reconocimiento 100% en tu dispositivo, privado y sin nube."
     />
     <title>CardLens — Escáner de cartas Pokémon TCG</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg" />
     <style>
       :root {
         --bg: #0f1115;
@@ -254,13 +255,7 @@
 
     <header class="hero">
       <div class="wrap">
-        <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 8V6a2 2 0 0 1 2-2h2" />
-          <path d="M16 4h2a2 2 0 0 1 2 2v2" />
-          <path d="M20 16v2a2 2 0 0 1-2 2h-2" />
-          <path d="M8 20H6a2 2 0 0 1-2-2v-2" />
-          <rect x="8.5" y="7" width="7" height="10" rx="1.5" />
-        </svg>
+        <img class="logo" src="icon.svg" width="88" height="88" alt="CardLens" />
         <span class="pill" data-i18n="pill">Beta en preparación</span>
         <h1>CardLens</h1>
         <p class="tagline" data-i18n="tagline">Escanea, identifica y colecciona tus cartas Pokémon TCG.</p>
@@ -325,13 +320,17 @@
         <div class="download">
           <h2 data-i18n="download.title">Descarga</h2>
           <p data-i18n="download.text">
-            CardLens está en desarrollo. Las versiones para Android y escritorio
-            estarán disponibles aquí muy pronto. Vuelve en unos días.
+            Descarga la última versión. En Android instala el APK (permite instalar
+            de orígenes desconocidos la primera vez). En escritorio, instalador para
+            Windows 64 bits.
           </p>
           <div class="cta">
-            <a class="btn btn-primary" aria-disabled="true" href="#" data-i18n="download.android">Android · próximamente</a>
-            <a class="btn" aria-disabled="true" href="#" data-i18n="download.desktop">Escritorio · próximamente</a>
+            <a class="btn btn-primary" href="https://github.com/alexwing/CardLens/releases/latest/download/CardLens-android-universal.apk" data-i18n="download.android">Android (APK)</a>
+            <a class="btn" href="https://github.com/alexwing/CardLens/releases/latest/download/CardLens-windows-x64-setup.exe" data-i18n="download.desktop">Windows (instalador)</a>
           </div>
+          <p style="margin-top: 16px; font-size: 13px;">
+            <a href="https://github.com/alexwing/CardLens/releases/latest" data-i18n="download.all">Ver todas las versiones en GitHub</a>
+          </p>
         </div>
       </section>
     </main>
@@ -378,9 +377,10 @@
             's3.title': 'Colecciona',
             's3.desc': 'Guárdala en tu colección con un toque y consúltala cuando quieras.',
             'download.title': 'Descarga',
-            'download.text': 'CardLens está en desarrollo. Las versiones para Android y escritorio estarán disponibles aquí muy pronto. Vuelve en unos días.',
-            'download.android': 'Android · próximamente',
-            'download.desktop': 'Escritorio · próximamente',
+            'download.text': 'Descarga la última versión. En Android instala el APK (permite instalar de orígenes desconocidos la primera vez). En escritorio, instalador para Windows 64 bits.',
+            'download.android': 'Android (APK)',
+            'download.desktop': 'Windows (instalador)',
+            'download.all': 'Ver todas las versiones en GitHub',
             'footer.disclaimer': 'Proyecto no oficial, sin ánimo de lucro. No afiliado ni respaldado por Nintendo, The Pokémon Company, Creatures ni GAME FREAK. «Pokémon», los nombres de las cartas y sus imágenes son marcas y © de sus respectivos propietarios; se usan únicamente con fines identificativos.',
             'footer.copy': '© 2026 Alejandro Aranda · Página provisional',
           },
@@ -410,9 +410,10 @@
             's3.title': 'Collect',
             's3.desc': 'Save it to your collection with one tap and check it whenever you want.',
             'download.title': 'Download',
-            'download.text': 'CardLens is in development. Android and desktop versions will be available here very soon. Check back in a few days.',
-            'download.android': 'Android · coming soon',
-            'download.desktop': 'Desktop · coming soon',
+            'download.text': 'Download the latest version. On Android, install the APK (allow installing from unknown sources the first time). On desktop, a Windows 64-bit installer.',
+            'download.android': 'Android (APK)',
+            'download.desktop': 'Windows (installer)',
+            'download.all': 'See all releases on GitHub',
             'footer.disclaimer': 'Unofficial, non-commercial project. Not affiliated with or endorsed by Nintendo, The Pokémon Company, Creatures or GAME FREAK. "Pokémon", card names and card images are trademarks and © of their respective owners; used for identification purposes only.',
             'footer.copy': '© 2026 Alejandro Aranda · Provisional page',
           },

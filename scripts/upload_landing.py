@@ -75,7 +75,16 @@ def main() -> int:
 
     with local.open("rb") as handle:
         ftp.storbinary("STOR index.html", handle)
-    print(f"Subida la landing -> https://{PUBLIC_HOST}/")
+    print("Subido index.html")
+
+    # Sube tambien el icono (favicon + logo del hero).
+    icon = REPO_ROOT / "landing" / "icon.svg"
+    if icon.exists():
+        with icon.open("rb") as handle:
+            ftp.storbinary("STOR icon.svg", handle)
+        print("Subido icon.svg")
+
+    print(f"Landing publicada -> https://{PUBLIC_HOST}/")
     ftp.quit()
     return 0
 
