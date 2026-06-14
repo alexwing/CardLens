@@ -17,3 +17,11 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# En movil (Android/iOS) no se puede lanzar un sidecar: la API se ejecuta
+# **en proceso**. Por eso solo en esos targets dependemos de la libreria de la
+# API y de un runtime tokio para alojarla. En escritorio se sigue usando el
+# binario sidecar (sin estas dependencias, build mas ligero e intacto).
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+pokemon-card-api = { path = "../../../services/api" }
+tokio = { version = "1", features = ["rt-multi-thread"] }
