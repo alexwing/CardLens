@@ -83,10 +83,11 @@
         padding: 56px 20px 40px;
       }
       .logo {
-        width: 72px;
-        height: 72px;
-        margin: 0 auto 20px;
-        color: var(--accent);
+        display: block;
+        width: 128px;
+        height: 128px;
+        margin: 0 auto 24px;
+        border-radius: 28px;
       }
       .hero h1 {
         font-size: 44px;
@@ -255,8 +256,7 @@
 
     <header class="hero">
       <div class="wrap">
-        <img class="logo" src="icon.svg" width="88" height="88" alt="CardLens" />
-        <span class="pill" data-i18n="pill">Beta en preparación</span>
+        <img class="logo" src="icon.svg" width="128" height="128" alt="CardLens" />
         <h1>CardLens</h1>
         <p class="tagline" data-i18n="tagline">Escanea, identifica y colecciona tus cartas Pokémon TCG.</p>
         <p class="lede" data-i18n-html="lede">
@@ -312,6 +312,24 @@
           <div class="step">
             <h3 data-i18n="s3.title">Colecciona</h3>
             <p data-i18n="s3.desc">Guárdala en tu colección con un toque y consúltala cuando quieras.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="por-dentro">
+        <h2 data-i18n="tech.title">Por dentro</h2>
+        <div class="grid">
+          <div class="card">
+            <h3 data-i18n="tech.t1.title">100% en tu dispositivo</h3>
+            <p data-i18n="tech.t1.desc">El reconocimiento corre con modelos preentrenados embarcados en la app: detecta y recorta la carta, calcula un «embedding» visual (MobileCLIP), lee el nombre por OCR y busca por similitud sobre un catálogo de unas 36.000 cartas. Sin servidores y sin que tus fotos salgan del dispositivo.</p>
+          </div>
+          <div class="card">
+            <h3 data-i18n="tech.t2.title">Por qué así</h3>
+            <p data-i18n="tech.t2.desc">Queríamos algo rápido, privado y que identifique sin depender de la nube. Nada de cuentas ni suscripciones: abres la app y funciona. Proyecto sin ánimo de lucro.</p>
+          </div>
+          <div class="card">
+            <h3 data-i18n="tech.t3.title">Precios e info al instante</h3>
+            <p data-i18n="tech.t3.desc">Cada carta muestra su set, número, rareza e idioma, además de precios orientativos de mercado (Cardmarket en EUR y TCGplayer en USD). Guárdala en tu colección con etiquetas y notas.</p>
           </div>
         </div>
       </section>
@@ -376,6 +394,13 @@
             's2.desc': 'La IA local reconoce la carta y te muestra la más probable con su porcentaje de confianza.',
             's3.title': 'Colecciona',
             's3.desc': 'Guárdala en tu colección con un toque y consúltala cuando quieras.',
+            'tech.title': 'Por dentro',
+            'tech.t1.title': '100% en tu dispositivo',
+            'tech.t1.desc': 'El reconocimiento corre con modelos preentrenados embarcados en la app: detecta y recorta la carta, calcula un «embedding» visual (MobileCLIP), lee el nombre por OCR y busca por similitud sobre un catálogo de unas 36.000 cartas. Sin servidores y sin que tus fotos salgan del dispositivo.',
+            'tech.t2.title': 'Por qué así',
+            'tech.t2.desc': 'Queríamos algo rápido, privado y que identifique sin depender de la nube. Nada de cuentas ni suscripciones: abres la app y funciona. Proyecto sin ánimo de lucro.',
+            'tech.t3.title': 'Precios e info al instante',
+            'tech.t3.desc': 'Cada carta muestra su set, número, rareza e idioma, además de precios orientativos de mercado (Cardmarket en EUR y TCGplayer en USD). Guárdala en tu colección con etiquetas y notas.',
             'download.title': 'Descarga',
             'download.text': 'Descarga la última versión. En Android instala el APK (permite instalar de orígenes desconocidos la primera vez). En escritorio, instalador para Windows 64 bits.',
             'download.android': 'Android (APK)',
@@ -409,6 +434,13 @@
             's2.desc': 'The on-device AI recognizes the card and shows the most likely one with its confidence score.',
             's3.title': 'Collect',
             's3.desc': 'Save it to your collection with one tap and check it whenever you want.',
+            'tech.title': 'Under the hood',
+            'tech.t1.title': '100% on your device',
+            'tech.t1.desc': 'Recognition runs with pretrained models bundled in the app: it detects and crops the card, computes a visual embedding (MobileCLIP), reads the name with OCR and searches by similarity over a catalog of ~36,000 cards. No servers, and your photos never leave the device.',
+            'tech.t2.title': 'Why this way',
+            'tech.t2.desc': 'We wanted something fast, private and able to identify without relying on the cloud. No accounts, no subscriptions: open the app and it works. A non-profit project.',
+            'tech.t3.title': 'Prices and info instantly',
+            'tech.t3.desc': 'Each card shows its set, number, rarity and language, plus reference market prices (Cardmarket in EUR and TCGplayer in USD). Save it to your collection with tags and notes.',
             'download.title': 'Download',
             'download.text': 'Download the latest version. On Android, install the APK (allow installing from unknown sources the first time). On desktop, a Windows 64-bit installer.',
             'download.android': 'Android (APK)',
