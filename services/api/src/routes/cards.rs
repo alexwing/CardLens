@@ -19,7 +19,8 @@ pub struct CardsQuery {
     pub page_size: Option<i64>,
 }
 
-/// Listado paginado de cartas; `q` filtra por nombre con LIKE, `set_id` por set.
+/// Listado paginado de cartas; `q` busca (LIKE) en nombre, numero, codigo de set
+/// y nombre del set; `set_id` filtra por set exacto.
 pub async fn list_cards(
     State(state): State<AppState>,
     Query(query): Query<CardsQuery>,
@@ -41,8 +42,11 @@ pub async fn list_cards(
         .filter(|value| !value.is_empty());
 
     let total: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM cards c \
-         WHERE (?1 IS NULL OR c.name LIKE '%' || ?1 || '%') \
+        "SELECT COUNT(*) FROM cards c LEFT JOIN sets s ON s.id = c.set_id \
+         WHERE (?1 IS NULL OR c.name LIKE '%' || ?1 || '%' \
+                OR c.number LIKE '%' || ?1 || '%' \
+                OR c.set_id LIKE '%' || ?1 || '%' \
+                OR s.name LIKE '%' || ?1 || '%') \
            AND (?2 IS NULL OR c.set_id = ?2)",
     )
     .bind(&q)
@@ -52,9 +56,12 @@ pub async fn list_cards(
 
     let sql = format!(
         "{CARD_SELECT} \
-         WHERE (?1 IS NULL OR c.name LIKE '%' || ?1 || '%') \
+         WHERE (?1 IS NULL OR c.name LIKE '%' || ?1 || '%' \
+                OR c.number LIKE '%' || ?1 || '%' \
+                OR c.set_id LIKE '%' || ?1 || '%' \
+                OR s.name LIKE '%' || ?1 || '%') \
            AND (?2 IS NULL OR c.set_id = ?2) \
-         ORDER BY c.set_id, c.id \
+         ORDER BY c.name, c.set_id, c.id \
          LIMIT ?3 OFFSET ?4"
     );
     let items = sqlx::query_as::<_, Card>(&sql)

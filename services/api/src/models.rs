@@ -201,6 +201,20 @@ fn default_quantity() -> i64 {
     1
 }
 
+/// Body de PATCH /api/collection/items/{id}. Actualiza campos de un item ya
+/// existente (principalmente la nota). Cada campo se aplica con COALESCE: si
+/// viene, reemplaza; si se omite (null), conserva el valor actual. Para borrar
+/// una nota se envia cadena vacia.
+#[derive(Debug, Deserialize)]
+pub struct UpdateCollectionItemRequest {
+    #[serde(default)]
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub quantity: Option<i64>,
+    #[serde(default)]
+    pub condition: Option<String>,
+}
+
 /// Respuesta de GET /api/prices/{card_id}.
 #[derive(Debug, Serialize)]
 pub struct PricesResponse {

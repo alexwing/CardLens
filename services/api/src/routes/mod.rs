@@ -26,7 +26,10 @@ pub fn api_router() -> Router<AppState> {
         .route("/api/collection/export", get(collection::export_collection))
         .route("/api/collection/import", post(collection::import_collection))
         .route("/api/collection/items", post(collection::create_item))
-        .route("/api/collection/items/{id}", delete(collection::delete_item))
+        .route(
+            "/api/collection/items/{id}",
+            delete(collection::delete_item).patch(collection::update_item),
+        )
         .route(
             "/api/collection/items/{id}/tags",
             post(collection::add_item_tag),

@@ -13,21 +13,22 @@ use crate::error::ApiError;
 use crate::models::{
     Card, CollectionExport, CollectionExportCard, CollectionExportItem, CollectionImportRequest,
     CollectionImportSummary, CollectionItemResponse, CollectionResponse,
-    CreateCollectionItemRequest, SkippedImportItem, TagRef, COLLECTION_EXPORT_FORMAT,
-    COLLECTION_EXPORT_VERSION,
+    CreateCollectionItemRequest, SkippedImportItem, TagRef, UpdateCollectionItemRequest,
+    COLLECTION_EXPORT_FORMAT, COLLECTION_EXPORT_VERSION,
 };
 use crate::routes::tags::{upsert_tag_by_name, upsert_tag_by_name_pool, TagNameRequest};
 use crate::AppState;
 
-/// SELECT del JOIN collection_items + cards + sets, ordenado por fecha.
+/// SELECT del JOIN collection_items + cards + sets. Sin ORDER BY/WHERE para
+/// poder reutilizarlo tanto en el listado (append ORDER BY) como en la consulta
+/// de un solo item (append WHERE).
 const COLLECTION_SELECT: &str =
     "SELECT ci.id, ci.quantity, ci.condition, ci.lang AS item_lang, ci.notes, ci.created_at, \
             c.id AS card_id, c.set_id, c.name AS card_name, c.number, c.rarity, c.supertype, \
             c.lang AS card_lang, c.image_url, c.image_local, s.name AS set_name \
      FROM collection_items ci \
      JOIN cards c ON c.id = ci.card_id \
-     LEFT JOIN sets s ON s.id = c.set_id \
-     ORDER BY ci.created_at DESC";
+     LEFT JOIN sets s ON s.id = c.set_id";
 
 /// Fila plana del JOIN collection_items + cards + sets.
 #[derive(Debug, FromRow)]
@@ -111,9 +112,11 @@ async fn tags_by_item(pool: &sqlx::SqlitePool) -> Result<HashMap<String, Vec<Tag
 pub async fn list_items(
     State(state): State<AppState>,
 ) -> Result<Json<CollectionResponse>, ApiError> {
-    let rows = sqlx::query_as::<_, CollectionRow>(COLLECTION_SELECT)
-        .fetch_all(&state.pool)
-        .await?;
+    let rows = sqlx::query_as::<_, CollectionRow>(&format!(
+        "{COLLECTION_SELECT} ORDER BY ci.created_at DESC"
+    ))
+    .fetch_all(&state.pool)
+    .await?;
 
     // Segunda query con todas las tags, agrupadas por item (sin N+1).
     let mut tags = tags_by_item(&state.pool).await?;
@@ -135,9 +138,11 @@ pub async fn list_items(
 pub async fn export_collection(
     State(state): State<AppState>,
 ) -> Result<Json<CollectionExport>, ApiError> {
-    let rows = sqlx::query_as::<_, CollectionRow>(COLLECTION_SELECT)
-        .fetch_all(&state.pool)
-        .await?;
+    let rows = sqlx::query_as::<_, CollectionRow>(&format!(
+        "{COLLECTION_SELECT} ORDER BY ci.created_at DESC"
+    ))
+    .fetch_all(&state.pool)
+    .await?;
 
     let mut tags = tags_by_item(&state.pool).await?;
 
@@ -397,6 +402,50 @@ pub async fn delete_item(
         )));
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Actualiza un item de coleccion (PATCH). Pensado sobre todo para editar la
+/// nota; tambien admite cantidad/estado. Cada campo se aplica con COALESCE (si
+/// se omite, conserva el valor). 404 si el item no existe. Responde 200 con el
+/// item actualizado (con sus etiquetas).
+pub async fn update_item(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<UpdateCollectionItemRequest>,
+) -> Result<Json<CollectionItemResponse>, ApiError> {
+    let result = sqlx::query(
+        "UPDATE collection_items \
+         SET notes = COALESCE(?1, notes), \
+             quantity = COALESCE(?2, quantity), \
+             condition = COALESCE(?3, condition) \
+         WHERE id = ?4",
+    )
+    .bind(body.notes.as_deref())
+    .bind(body.quantity)
+    .bind(body.condition.as_deref())
+    .bind(&id)
+    .execute(&state.pool)
+    .await?;
+    if result.rows_affected() == 0 {
+        return Err(ApiError::NotFound(format!(
+            "item de coleccion no encontrado: {id}"
+        )));
+    }
+
+    let row = sqlx::query_as::<_, CollectionRow>(&format!("{COLLECTION_SELECT} WHERE ci.id = ?1"))
+        .bind(&id)
+        .fetch_one(&state.pool)
+        .await?;
+    let mut item: CollectionItemResponse = row.into();
+    item.tags = sqlx::query_as::<_, TagRef>(
+        "SELECT t.id, t.name FROM collection_item_tags cit \
+         JOIN tags t ON t.id = cit.tag_id \
+         WHERE cit.item_id = ?1 ORDER BY t.name COLLATE NOCASE",
+    )
+    .bind(&id)
+    .fetch_all(&state.pool)
+    .await?;
+    Ok(Json(item))
 }
 
 /// Asocia una etiqueta (por nombre) a un item de coleccion. Crea o reutiliza la
