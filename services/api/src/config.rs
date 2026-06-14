@@ -39,6 +39,30 @@ pub struct Config {
 }
 
 impl Config {
+    /// Configuracion para la app **embebida** (Tauri escritorio/Android): todas
+    /// las rutas cuelgan de un unico `data_dir` escribible, donde se copian los
+    /// modelos/indice/DB desde los assets en el primer arranque. No depende del
+    /// repo ni de variables de entorno (clave en Android, sin `CARGO_MANIFEST_DIR`).
+    pub fn embedded(data_dir: PathBuf, api_port: u16) -> Self {
+        Self {
+            api_port,
+            database_path: data_dir.join("app.db"),
+            price_provider: "null".to_string(),
+            model_path: data_dir.join("mobileclip2_s0/vision_model.onnx"),
+            index_bin_path: data_dir.join("index/mobileclip.bin"),
+            index_cards_path: data_dir.join("index/mobileclip_cards.json"),
+            ocr_det_path: data_dir.join("ocrs/text-detection.rten"),
+            ocr_rec_path: data_dir.join("ocrs/text-recognition.rten"),
+            top_k: 5,
+            conf_threshold: 0.80,
+            margin_threshold: 0.05,
+            search_k: 30,
+            w_ocr: 0.35,
+            // `data_dir` se mueve al final: antes se usa por referencia en los join.
+            data_dir,
+        }
+    }
+
     pub fn from_env() -> anyhow::Result<Self> {
         let api_port: u16 = match env::var("API_PORT") {
             Ok(value) => value
