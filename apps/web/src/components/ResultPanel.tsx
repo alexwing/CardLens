@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ScanCandidateView, ScanResponse } from '../lib/types';
-import { addToCollection, ApiRequestError, imageSrc } from '../lib/api';
+import { addToCollection, ApiRequestError, getCollection, imageSrc } from '../lib/api';
 import { useT } from '../lib/i18n';
 import CardTile from './CardTile';
 import ConfidenceBar from './ConfidenceBar';
@@ -23,6 +23,14 @@ export default function ResultPanel({ result }: ResultPanelProps) {
     result.candidates.length > 0 ? result.candidates[0] : null
   );
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  // IDs de cartas ya en la coleccion, para avisar ANTES de pulsar Guardar.
+  const [collectionIds, setCollectionIds] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    getCollection()
+      .then((response) => setCollectionIds(new Set(response.items.map((item) => item.card.id))))
+      .catch(() => setCollectionIds(new Set()));
+  }, []);
 
   if (!result.best || !selected) {
     return (
@@ -35,6 +43,10 @@ export default function ResultPanel({ result }: ResultPanelProps) {
 
   const card = selected.card;
   const alternatives = result.candidates.filter((candidate) => candidate.card.id !== card.id);
+  // Estado efectivo del boton: si ya esta en la coleccion, se refleja sin pulsar.
+  const alreadyInCollection = collectionIds?.has(card.id) ?? false;
+  const effectiveState: SaveState =
+    saveState !== 'idle' ? saveState : alreadyInCollection ? 'exists' : 'idle';
 
   async function handleSave() {
     if (!selected) return;
@@ -49,9 +61,15 @@ export default function ResultPanel({ result }: ResultPanelProps) {
         notes: null,
       });
       setSaveState('saved');
+      setCollectionIds((prev) => new Set(prev ?? []).add(selected.card.id));
     } catch (err) {
       // 409 = la carta ya esta en la coleccion (no es un fallo real).
-      setSaveState(err instanceof ApiRequestError && err.status === 409 ? 'exists' : 'error');
+      if (err instanceof ApiRequestError && err.status === 409) {
+        setSaveState('exists');
+        setCollectionIds((prev) => new Set(prev ?? []).add(selected.card.id));
+      } else {
+        setSaveState('error');
+      }
     }
   }
 
@@ -116,27 +134,29 @@ export default function ResultPanel({ result }: ResultPanelProps) {
           type="button"
           className="btn btn-primary"
           onClick={() => void handleSave()}
-          disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'exists'}
+          disabled={
+            effectiveState === 'saving' || effectiveState === 'saved' || effectiveState === 'exists'
+          }
         >
-          {saveState === 'saving'
+          {effectiveState === 'saving'
             ? t('result.saving')
-            : saveState === 'saved'
+            : effectiveState === 'saved'
               ? t('result.saved')
-              : saveState === 'exists'
+              : effectiveState === 'exists'
                 ? t('result.alreadySaved')
                 : t('result.save')}
         </button>
-        {saveState === 'saved' && (
+        {effectiveState === 'saved' && (
           <p className="success-text">
             {t('result.savedText')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
           </p>
         )}
-        {saveState === 'exists' && (
+        {effectiveState === 'exists' && (
           <p className="success-text">
             {t('result.alreadyInCollection')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
           </p>
         )}
-        {saveState === 'error' && <p className="error-text">{t('result.saveError')}</p>}
+        {effectiveState === 'error' && <p className="error-text">{t('result.saveError')}</p>}
       </div>
     </section>
   );

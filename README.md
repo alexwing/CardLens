@@ -1,155 +1,186 @@
 # CardLens
 
-> Escaner de cartas Pokemon TCG. (Repositorio: PokemonCardDetector.)
+> Escaner de cartas Pokemon TCG, **self-contained** y **on-device**. (Repositorio: PokemonCardDetector.)
 
-Escanea cartas Pokemon con el movil o el escritorio, identificalas en segundos con modelos preentrenados que corren **100% en local**, consulta su informacion y precio estimado, y guardalas en tu coleccion personal.
+Apunta con la camara o sube una foto y CardLens identifica la carta en ~0,3 s
+**100% en tu dispositivo** (sin nube, sin cuentas, sin Python en ejecucion),
+te muestra su informacion y la guardas en tu coleccion personal.
 
-> **Aviso:** proyecto no oficial, sin animo de lucro. No afiliado ni respaldado por Nintendo, The Pokemon Company, Creatures ni GAME FREAK. «Pokemon», los nombres de las cartas y sus imagenes son marcas y © de sus respectivos propietarios; se usan unicamente con fines identificativos.
+> **Aviso:** proyecto no oficial, sin animo de lucro. No afiliado ni respaldado por
+> Nintendo, The Pokemon Company, Creatures ni GAME FREAK. «Pokemon», los nombres de
+> las cartas y sus imagenes son marcas y © de sus respectivos propietarios; se usan
+> unicamente con fines identificativos.
 
-- Sin nube, sin cuentas, sin coste: la inferencia (deteccion, OCR, embeddings y busqueda) se ejecuta en tu maquina.
-- Catalogo multiidioma (en, es, fr, de, it, pt) descargado de la API gratuita de [TCGdex](https://tcgdex.dev).
-- Cero entrenamiento de modelos: todo el pipeline usa modelos preentrenados (RapidOCR, OpenCLIP) y vision clasica (OpenCV).
+## Que hace
+
+- **Reconocimiento on-device en Rust** (sin Python en ejecucion): detecta y recorta
+  la carta (vision clasica), calcula el embedding visual con **MobileCLIP2-S0** (ONNX
+  Runtime), lee el **nombre por OCR** (`ocrs`/`rten`) y busca por **similitud coseno**.
+  El OCR refuerza el resultado para desambiguar artes parecidos.
+- **Escritorio autonomo**: abres el ejecutable y arranca todo solo — la API va
+  empaquetada como *sidecar* y se cierra al salir. Un instalador, sin dependencias
+  externas en ejecucion.
+- **Coleccion**: guarda cartas (sin duplicados), **etiquetas** y **filtros**
+  (set / rareza / tipo / idioma / buscar), e **import/export en JSON**.
+- **Multiidioma** (ES/EN) en la interfaz; catalogo multilingue de [TCGdex](https://tcgdex.dev).
+- **Privado**: las fotos nunca salen de tu equipo. Lo unico que viaja a internet es
+  descargar el catalogo y mostrar las imagenes de las cartas (remotas / CDN).
+- **Cero entrenamiento**: todo el pipeline usa modelos preentrenados.
 
 ## Arquitectura
 
+El runtime es **100% Rust**. La app de escritorio (Tauri 2) arranca la API como
+binario sidecar; la API **embebe el reconocedor** (`core/recognizer`) y resuelve el
+escaneo en proceso. Python solo interviene **offline** para la ingesta del catalogo.
+
 ```mermaid
-flowchart LR
-    subgraph Clientes
-        WEB[Web Vite/React<br/>localhost:5173]
-        TAURI[Escritorio / Android<br/>Tauri 2]
+flowchart TB
+    subgraph APP["App de escritorio (Tauri 2) — un solo ejecutable"]
+        UI["Frontend React + Vite<br/>PWA · ES/EN · coleccion"]
+        API["API + reconocedor en Rust<br/>axum · sidecar :8787"]
+        UI -->|"HTTP /api"| API
     end
 
-    subgraph Backend
-        API[API Rust axum<br/>127.0.0.1:8787]
-        ML[Servicio ML Python FastAPI<br/>127.0.0.1:8001]
+    subgraph REC["core/recognizer (Rust, on-device)"]
+        DET["Deteccion + recorte<br/>vision clasica (imageproc)"]
+        EMB["MobileCLIP2-S0<br/>ONNX Runtime (ort)"]
+        OCRR["OCR del nombre<br/>ocrs / rten"]
+        SRCH["Busqueda coseno<br/>indice propio (.bin)"]
     end
 
-    subgraph Inferencia local
-        CV[OpenCV<br/>deteccion + rectificado]
-        OCR[RapidOCR<br/>OCR multilingue]
-        CLIP[OpenCLIP ViT-B-32<br/>embeddings]
-        FAISS[FAISS IndexFlatIP<br/>busqueda coseno]
-    end
+    DB[("SQLite<br/>catalogo + coleccion + scans")]
+    IMG["Imagenes de cartas<br/>remoto / CDN"]
+    ING["Ingesta offline (Python)<br/>TCGdex -> SQLite + imagenes"]
+    IDX["Indexado MobileCLIP (Rust)<br/>build_index -> .bin + .json"]
 
-    subgraph Datos
-        DB[(SQLite<br/>data/app.db)]
-        IMG[data/images<br/>data/scans<br/>data/index]
-    end
-
-    EXT[TCGdex API v2<br/>catalogo + precios]
-
-    WEB -->|HTTP /api| API
-    TAURI -->|HTTP /api| API
-    API -->|POST /analyze| ML
-    ML --> CV --> OCR --> CLIP --> FAISS
+    API --> DET
+    DET --> EMB --> SRCH
+    DET --> OCRR --> SRCH
+    SRCH --> API
     API --> DB
-    API --> IMG
-    ML --> IMG
-    API -.->|precios opcional| EXT
-    INGESTA[Ingesta Python] -.->|catalogo + imagenes| EXT
-    INGESTA --> DB
-    INGESTA --> IMG
+    UI -. "img remota" .-> IMG
+    ING --> DB
+    IDX --> SRCH
 ```
 
-- **API Rust (axum, puerto 8787)**: API publica, persistencia SQLite (migraciones al arrancar), servido de imagenes estaticas y conector de precios desacoplado (`PriceProvider`).
-- **Servicio ML (FastAPI, puerto 8001)**: servicio interno de inferencia. Detecta la carta (OpenCV), lee texto (RapidOCR), calcula el embedding (OpenCLIP) y busca los 5 candidatos mas parecidos en FAISS.
-- **Ingesta (Python)**: descarga catalogo e imagenes oficiales de TCGdex a SQLite y `data/images/`, y construye el indice FAISS.
-- **Web (Vite/React)** y **escritorio/Android (Tauri 2)**: clientes que consumen la API publica.
-- **SQLite compartida en `data/`**: una sola fuente de verdad para catalogo, escaneos, coleccion y cache de precios.
+- **App Tauri 2 (escritorio; Android pendiente):** un solo ejecutable. Al abrirse lanza
+  la API sidecar y la cierra al salir; reutiliza el frontend web empaquetado.
+- **API en Rust (axum, :8787):** API publica, persistencia SQLite (migraciones al
+  arrancar), servido de estaticos y conector de precios desacoplado (`PriceProvider`).
+  **Embebe el reconocedor**: `/api/scan` hace deteccion + embedding + OCR + busqueda.
+- **core/recognizer (Rust):** nucleo de inferencia compartido (escritorio y futuro
+  Android). Detector por recorte (bounding box), embedder MobileCLIP via ONNX Runtime,
+  OCR via `ocrs`/`rten` e indice de similitud coseno en Rust puro.
+- **Ingesta (Python, offline):** descarga el catalogo e imagenes de TCGdex a SQLite y
+  prepara la lista de cartas; un binario Rust (`build_index`) calcula el indice
+  MobileCLIP. Python **no se ejecuta** durante el uso normal de la app.
+- **SQLite (`data/app.db`):** unica fuente de verdad de catalogo, coleccion, etiquetas y scans.
 
 ## Estructura de carpetas
 
 ```
 PokemonCardDetector/
 ├── apps/
-│   ├── web/            # Cliente web (Vite + React), dev en :5173
-│   └── desktop/        # Envoltorio Tauri 2 (escritorio y Android)
+│   ├── web/             # Cliente web (Vite + React), i18n ES/EN, dev en :5173
+│   └── desktop/         # App Tauri 2 (escritorio). Arranca la API como sidecar
+│       └── src-tauri/   #   lib.rs (spawn/kill del sidecar) + tauri.conf.json (bundle)
+├── core/
+│   └── recognizer/      # Nucleo de inferencia en Rust (deteccion, MobileCLIP, OCR, busqueda)
+│       └── src/bin/build_index.rs   # Construye el indice MobileCLIP del catalogo
 ├── services/
-│   ├── api/            # API publica Rust (axum + sqlx), puerto 8787
-│   │   └── migrations/ # 0001_init.sql: unico propietario del esquema SQL
-│   └── ml/             # Servicio ML FastAPI (puerto 8001) + ingesta del catalogo
-├── data/               # Datos locales (NO se versiona, salvo .gitkeep)
-│   ├── app.db          # SQLite compartida (la crea la API al arrancar)
-│   ├── images/         # Imagenes oficiales del catalogo ({card_id}.png)
-│   ├── scans/          # Fotos subidas por el usuario ({scan_id}.jpg)
-│   └── index/          # faiss.index + cards.json (mapa fila -> carta)
-├── docs/
-│   └── ARCHITECTURE.md # Documento de referencia completo
-├── scripts/
-│   ├── dev.ps1         # Arranca API + ML + web en ventanas separadas (Windows)
-│   └── ingest.ps1      # Ingesta de catalogo + construccion del indice
-├── docker-compose.yml  # Alternativa con contenedores (api + ml)
-├── .env.example        # Variables de entorno documentadas
+│   ├── api/             # API publica Rust (axum + sqlx + recognizer), :8787
+│   │   └── migrations/  # 0001 esquema · 0002 etiquetas · 0003 anti-duplicados
+│   └── ml/              # Python: SOLO ingesta del catalogo (offline). No corre en runtime
+├── models/              # Modelos descargados (gitignored): MobileCLIP2-S0, OCR (ocrs)
+├── runtime/             # onnxruntime.dll para desarrollo (gitignored)
+├── data/                # Datos locales (gitignored salvo .gitkeep): app.db, images, scans, index
+│   └── index/           # mobileclip.bin + mobileclip_cards.json (indice de runtime)
+├── docs/                # ARCHITECTURE.md (escritorio) y ARCHITECTURE-MOBILE.md (plan Android)
+├── scripts/             # dev.ps1, ingest.ps1, stage-desktop-resources.ps1, upload_*.py
 └── README.md
 ```
 
-## Quickstart (Windows)
+## Quickstart de desarrollo (Windows)
 
 Prerequisitos: [Rust](https://rustup.rs) (cargo), Python 3.10+, Node.js 18+.
 
-Sigue los pasos **en este orden** (la API crea la base de datos que la ingesta rellena despues):
+**1) Modelos** (una vez). Descarga a `models/` y `runtime/`:
+- MobileCLIP2-S0 ONNX (encoder de imagen) -> `models/mobileclip2_s0/vision_model.onnx`
+- OCR `ocrs` -> `models/ocrs/text-detection.rten` y `text-recognition.rten`
+- ONNX Runtime 1.22 (Windows x64) `onnxruntime.dll` -> `runtime/ort/onnxruntime.dll`
 
+**2) Esquema + catalogo:**
 ```powershell
-# 1) API Rust: crea data/app.db con el esquema y deja la API escuchando en :8787
-cd services/api
-cargo run
-
-# 2) (en otra terminal) Entorno Python del servicio ML
+cd services/api; cargo run        # crea data/app.db y deja la API en :8787 (Ctrl+C tras crear el esquema)
 cd services/ml
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# 3) Ingesta del catalogo (ejemplo acotado para probar rapido; usa --all para todo)
-python -m ingest.ingest_catalog --langs en es --sets base1 swsh3
-
-# 4) Construye el indice FAISS a partir de las imagenes descargadas
-python -m ingest.build_index
-
-# 5) Arranca el servicio ML
-uvicorn app.main:app --port 8001
-
-# 6) (en otra terminal) Cliente web
-cd apps/web
-npm install
-npm run dev
-# Abre http://localhost:5173
+python -m ingest.ingest_catalog --langs en es --all   # catalogo + imagenes (tarda)
+python -m ingest.build_index                            # prepara data/index/cards.json
 ```
 
-Atajo: `scripts/dev.ps1` arranca API, ML y web en ventanas separadas, y `scripts/ingest.ps1 --langs en es --sets base1 swsh3` ejecuta la ingesta completa (catalogo + indice).
+**3) Indice MobileCLIP (runtime):**
+```powershell
+cd core/recognizer
+$env:ORT_DYLIB_PATH = "..\..\runtime\ort\onnxruntime.dll"
+cargo run --release --bin build_index --features "onnx desktop-dynamic"
+```
 
-## Escritorio y Android
+**4) Arranca la API (Rust) y la web:**
+```powershell
+cd services/api
+$env:ORT_DYLIB_PATH = "..\..\runtime\ort\onnxruntime.dll"
+cargo run                          # API + reconocedor en :8787
 
-La app de escritorio y la de Android comparten un unico codigo base con Tauri 2, reutilizando el frontend web. Instrucciones de compilacion y firma en [`apps/desktop/README.md`](apps/desktop/README.md).
+cd apps/web; npm install; npm run dev   # http://localhost:5173
+```
 
-## Alternativa con Docker
+> Nota: las dependencias se compilan optimizadas incluso en build de desarrollo
+> (`[profile.dev.package."*"]`) para que el OCR (Rust puro) vaya rapido.
+
+## App de escritorio autonoma
+
+El ejecutable empaquetado arranca la API el solo (no hay que lanzar nada):
 
 ```powershell
-docker compose up --build
+# 1) prepara el sidecar y los recursos (modelo, indice, OCR, DLL, DB) para el bundle
+powershell -File scripts/stage-desktop-resources.ps1
+# 2) construye el instalable
+cd apps/desktop; npm install; npm run tauri build
 ```
 
-Levanta la API en `http://localhost:8787` y el servicio ML en `http://localhost:8001`, compartiendo `./data` como volumen. Los `Dockerfile` viven en `services/api` y `services/ml`. La ingesta del catalogo se ejecuta aparte (paso 3 del quickstart o `scripts/ingest.ps1`).
+Genera el ejecutable portable y el instalador NSIS (`CardLens_..._x64-setup.exe`) en
+`apps/desktop/src-tauri/target/release/`. Detalles y notas de Android en
+[`apps/desktop/README.md`](apps/desktop/README.md).
 
 ## Configuracion
 
-Copia `.env.example` a `.env` y ajusta lo que necesites:
+Variables (`.env` en la raiz para la API; `apps/web/.env` para la web):
 
 | Variable | Default | Descripcion |
 |---|---|---|
 | `API_PORT` | `8787` | Puerto de la API Rust |
-| `ML_PORT` | `8001` | Puerto del servicio ML |
-| `ML_SERVICE_URL` | `http://127.0.0.1:8001` | URL del ML vista desde la API |
-| `DATABASE_PATH` | `./data/app.db` | Ruta de la base SQLite (relativa a la raiz del repo) |
-| `DATA_DIR` | `./data` | Raiz de datos: imagenes, scans, indice (relativa a la raiz del repo) |
+| `DATABASE_PATH` | `<repo>/data/app.db` | Base SQLite (relativa a la raiz del repo) |
+| `DATA_DIR` | `<repo>/data` | Raiz de datos: scans, indice |
+| `ORT_DYLIB_PATH` | — | Ruta a `onnxruntime.dll` (necesaria en desarrollo) |
+| `MODEL_PATH` | `models/mobileclip2_s0/vision_model.onnx` | Encoder visual ONNX |
+| `INDEX_BIN_PATH` / `INDEX_CARDS_PATH` | `data/index/mobileclip.*` | Indice de runtime |
+| `OCR_DET_PATH` / `OCR_REC_PATH` | `models/ocrs/*.rten` | Modelos OCR |
+| `SEARCH_K` / `TOP_K` | `30` / `5` | Candidatos recuperados / devueltos |
+| `W_OCR` | `0.35` | Peso del refuerzo OCR (bonus aditivo) |
+| `CONF_THRESHOLD` / `MARGIN_THRESHOLD` | `0.80` / `0.05` | Umbrales de confianza baja |
 | `PRICE_PROVIDER` | `null` | Proveedor de precios: `null` o `tcgdex` |
-| `VITE_API_URL` | `http://localhost:8787` | URL de la API vista desde la web (ver nota) |
-
-> **Nota:** `VITE_API_URL` **no** se lee del `.env` de la raiz: Vite solo carga los `.env` de `apps/web`. Definela en `apps/web/.env` (partiendo de `apps/web/.env.example`).
+| `VITE_API_URL` | `http://localhost:8787` | URL de la API vista desde la web (en `apps/web/.env`) |
+| `VITE_IMAGE_BASE` | — | CDN propio de imagenes (`.../catalog`); si se omite, usa la imagen remota del catalogo |
 
 ## Privacidad
 
-Todo corre en tu maquina. Las fotos que haces a tus cartas **nunca salen de tu equipo**: se guardan en `data/scans/` y se procesan en local. La unica salida a internet es la descarga del catalogo y las imagenes oficiales desde TCGdex y, si activas `PRICE_PROVIDER=tcgdex`, la consulta opcional de precios (con cache local de 24 horas). No hay telemetria, ni cuentas, ni servicios de pago.
+Todo el reconocimiento corre en tu maquina. Las fotos de tus cartas **nunca salen de
+tu equipo**: se guardan en local y se procesan en proceso. La unica salida a internet
+es la descarga del catalogo, mostrar las imagenes de las cartas y, opcionalmente, los
+precios (`PRICE_PROVIDER=tcgdex`, con cache local). Sin telemetria, sin cuentas, sin
+servicios de pago.
 
 ## Licencia
 
-MIT. Ver [LICENSE](LICENSE).
+MIT. Copyright (c) 2026 Alejandro Aranda. Ver [LICENSE](LICENSE).
