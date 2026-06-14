@@ -44,6 +44,8 @@ const es = {
   'result.save': 'Guardar en colección',
   'result.saving': 'Guardando…',
   'result.saved': 'Guardada en la colección ✓',
+  'result.alreadySaved': 'Ya en la colección',
+  'result.alreadyInCollection': 'Esta carta ya estaba en tu colección.',
   'result.savedText': 'Carta añadida.',
   'result.viewCollection': 'Ver colección',
   'result.saveError': 'No se pudo guardar la carta. Inténtalo de nuevo.',

@@ -46,6 +46,8 @@ const en: Record<TranslationKey, string> = {
   'result.save': 'Save to collection',
   'result.saving': 'Saving…',
   'result.saved': 'Saved to collection ✓',
+  'result.alreadySaved': 'Already in collection',
+  'result.alreadyInCollection': 'This card is already in your collection.',
   'result.savedText': 'Card added.',
   'result.viewCollection': 'View collection',
   'result.saveError': 'Could not save the card. Try again.',

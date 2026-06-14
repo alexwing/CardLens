@@ -19,6 +19,10 @@ pub enum ApiError {
     #[error("{0}")]
     MlUnavailable(String),
 
+    /// Conflicto con el estado actual (p. ej. recurso duplicado) -> 409.
+    #[error("{0}")]
+    Conflict(String),
+
     /// Error de base de datos -> 500 (404 si la fila no existe).
     #[error(transparent)]
     Database(#[from] sqlx::Error),
@@ -34,6 +38,7 @@ impl IntoResponse for ApiError {
             ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
             ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             ApiError::MlUnavailable(msg) => (StatusCode::BAD_GATEWAY, msg.clone()),
+            ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             ApiError::Database(sqlx::Error::RowNotFound) => {
                 (StatusCode::NOT_FOUND, "recurso no encontrado".to_string())
             }

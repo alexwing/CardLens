@@ -21,10 +21,20 @@ import type {
 
 export const API_BASE: string = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 
+/** Error de la API que conserva el codigo HTTP para que el llamante lo distinga. */
+export class ApiRequestError extends Error {
+  status: number;
+  constructor(status: number, path: string) {
+    super(`Error de la API (${status}) en ${path}`);
+    this.name = 'ApiRequestError';
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, init);
   if (!response.ok) {
-    throw new Error(`Error de la API (${response.status}) en ${path}`);
+    throw new ApiRequestError(response.status, path);
   }
   if (response.status === 204) {
     return undefined as T;

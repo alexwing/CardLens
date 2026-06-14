@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ScanCandidateView, ScanResponse } from '../lib/types';
-import { addToCollection, imageSrc } from '../lib/api';
+import { addToCollection, ApiRequestError, imageSrc } from '../lib/api';
 import { useT } from '../lib/i18n';
 import CardTile from './CardTile';
 import ConfidenceBar from './ConfidenceBar';
@@ -15,7 +15,7 @@ interface ResultPanelProps {
   result: ScanResponse;
 }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+type SaveState = 'idle' | 'saving' | 'saved' | 'exists' | 'error';
 
 export default function ResultPanel({ result }: ResultPanelProps) {
   const { t } = useT();
@@ -49,8 +49,9 @@ export default function ResultPanel({ result }: ResultPanelProps) {
         notes: null,
       });
       setSaveState('saved');
-    } catch {
-      setSaveState('error');
+    } catch (err) {
+      // 409 = la carta ya esta en la coleccion (no es un fallo real).
+      setSaveState(err instanceof ApiRequestError && err.status === 409 ? 'exists' : 'error');
     }
   }
 
@@ -115,17 +116,24 @@ export default function ResultPanel({ result }: ResultPanelProps) {
           type="button"
           className="btn btn-primary"
           onClick={() => void handleSave()}
-          disabled={saveState === 'saving' || saveState === 'saved'}
+          disabled={saveState === 'saving' || saveState === 'saved' || saveState === 'exists'}
         >
           {saveState === 'saving'
             ? t('result.saving')
             : saveState === 'saved'
               ? t('result.saved')
-              : t('result.save')}
+              : saveState === 'exists'
+                ? t('result.alreadySaved')
+                : t('result.save')}
         </button>
         {saveState === 'saved' && (
           <p className="success-text">
             {t('result.savedText')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
+          </p>
+        )}
+        {saveState === 'exists' && (
+          <p className="success-text">
+            {t('result.alreadyInCollection')} <Link to="/coleccion">{t('result.viewCollection')}</Link>
           </p>
         )}
         {saveState === 'error' && <p className="error-text">{t('result.saveError')}</p>}

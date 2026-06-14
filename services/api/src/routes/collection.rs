@@ -337,6 +337,20 @@ pub async fn create_item(
         }
     }
 
+    // Control de duplicados: una carta solo puede estar una vez en la coleccion.
+    // (El indice unico ux_collection_user_card es el respaldo a nivel de BD.)
+    let already_present: Option<String> =
+        sqlx::query_scalar("SELECT id FROM collection_items WHERE card_id = ?1 AND user_id IS NULL LIMIT 1")
+            .bind(&body.card_id)
+            .fetch_optional(&state.pool)
+            .await?;
+    if already_present.is_some() {
+        return Err(ApiError::Conflict(format!(
+            "la carta ya esta en tu coleccion: {}",
+            body.card_id
+        )));
+    }
+
     let id = Uuid::new_v4().to_string();
     let created_at = Utc::now().to_rfc3339();
 
