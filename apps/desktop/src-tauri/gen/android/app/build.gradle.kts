@@ -13,6 +13,15 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Firma de release: lee gen/android/keystore.properties (ignorado por git). Si
+// no existe (otra maquina sin el keystore), el build de release no se firma.
+val keystoreProperties = Properties().apply {
+    val propFile = rootProject.file("keystore.properties")
+    if (propFile.exists()) {
+        propFile.inputStream().use { load(it) }
+    }
+}
+
 android {
     compileSdk = 36
     namespace = "xyz.mappuzzle.cardlens"
@@ -30,6 +39,14 @@ android {
     androidResources {
         noCompress += listOf("onnx", "bin", "rten", "db", "json")
     }
+    signingConfigs {
+        create("release") {
+            keystoreProperties.getProperty("keyAlias")?.let { keyAlias = it }
+            keystoreProperties.getProperty("keyPassword")?.let { keyPassword = it }
+            keystoreProperties.getProperty("storePassword")?.let { storePassword = it }
+            keystoreProperties.getProperty("storeFile")?.let { storeFile = file(it) }
+        }
+    }
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -43,7 +60,14 @@ android {
             }
         }
         getByName("release") {
-            isMinifyEnabled = true
+            // Firma con el keystore de release si esta configurado.
+            if (keystoreProperties.containsKey("storeFile")) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            // Sin minify/proguard: el peso lo dominan los assets (~138 MB) y la
+            // .so de Rust; R8 sobre el poco Java/Kotlin no compensa el riesgo de
+            // recortar algo que Tauri/wry necesiten en la primera release.
+            isMinifyEnabled = false
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))

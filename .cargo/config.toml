@@ -1,0 +1,9 @@
+# Alineacion de paginas a 16 KB para las .so de 64 bits en Android (requisito de
+# Google Play para apps que apuntan a Android 15+). El NDK r26d no lo aplica por
+# defecto (r28+ si). Cubre la cdylib de Rust (libapp_lib.so) y lo que enlaza
+# estaticamente (rten/ocrs/sqlx). La libonnxruntime.so oficial ya viene alineada.
+[target.aarch64-linux-android]
+rustflags = ["-C", "link-arg=-Wl,-z,max-page-size=16384"]
+
+[target.x86_64-linux-android]
+rustflags = ["-C", "link-arg=-Wl,-z,max-page-size=16384"]

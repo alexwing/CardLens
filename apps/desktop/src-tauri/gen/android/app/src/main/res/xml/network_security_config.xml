@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- La API corre EN PROCESO sobre http://localhost:8787 (loopback) y el
+         WebView (http://tauri.localhost) la consume. Permitimos cleartext SOLO
+         en loopback; cualquier otro destino (p. ej. el CDN de imagenes) sigue
+         exigiendo HTTPS. Asi el build de release funciona sin abrir cleartext
+         de forma global. networkSecurityConfig tiene prioridad sobre
+         usesCleartextTraffic. -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">tauri.localhost</domain>
+    </domain-config>
+</network-security-config>
