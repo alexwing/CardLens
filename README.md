@@ -11,6 +11,17 @@ details and lets you save it to your personal collection.
 > the card names and their images are trademarks and © of their respective
 > owners; they are used solely for identification purposes.
 
+## Screenshots
+
+<p align="center">
+  <a href="docs/ScreenShot_001.png"><img src="docs/ScreenShot_001.png" alt="Scan result with prices" width="185" /></a>
+  <a href="docs/ScreenShot_003.png"><img src="docs/ScreenShot_003.png" alt="Card search" width="185" /></a>
+  <a href="docs/ScreenShot_002.png"><img src="docs/ScreenShot_002.png" alt="Collection with tags and filters" width="185" /></a>
+  <a href="docs/ScreenShot_004.png"><img src="docs/ScreenShot_004.png" alt="Card detail with prices and note" width="185" /></a>
+</p>
+
+<p align="center"><sub>Scan &amp; prices · Search · Collection · Card detail (prices + note)</sub></p>
+
 ## What it does
 
 - **On-device recognition in Rust** (no Python at runtime): detects and crops the
