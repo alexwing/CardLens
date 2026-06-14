@@ -47,7 +47,7 @@ impl Config {
         Self {
             api_port,
             database_path: data_dir.join("app.db"),
-            price_provider: "null".to_string(),
+            price_provider: "tcgdex".to_string(),
             model_path: data_dir.join("mobileclip2_s0/vision_model.onnx"),
             index_bin_path: data_dir.join("index/mobileclip.bin"),
             index_cards_path: data_dir.join("index/mobileclip_cards.json"),
@@ -90,7 +90,9 @@ impl Config {
             Err(_) => default_data_dir.join("app.db"),
         };
 
-        let price_provider = env::var("PRICE_PROVIDER").unwrap_or_else(|_| "null".to_string());
+        // Por defecto se usan los precios de TCGdex (gratis, mismas IDs del
+        // catalogo). Requiere internet; se puede desactivar con PRICE_PROVIDER=null.
+        let price_provider = env::var("PRICE_PROVIDER").unwrap_or_else(|_| "tcgdex".to_string());
 
         let index_dir = data_dir.join("index");
         let model_path = match env::var("MODEL_PATH") {
