@@ -63,13 +63,16 @@ flowchart TB
     IDX --> SRCH
 ```
 
-- **App Tauri 2 (escritorio; Android pendiente):** un solo ejecutable. Al abrirse lanza
-  la API sidecar y la cierra al salir; reutiliza el frontend web empaquetado.
+- **App Tauri 2 (escritorio y Android):** en escritorio, un solo ejecutable que al
+  abrirse lanza la API como *sidecar* y la cierra al salir. En Android no se puede
+  lanzar un sidecar, asi que la **misma API corre en proceso** (hilo + runtime tokio)
+  dentro de la app; los modelos/indice/DB viajan como assets en la APK y se extraen al
+  almacenamiento privado en el primer arranque. Reconocimiento 100% on-device en ambos.
 - **API en Rust (axum, :8787):** API publica, persistencia SQLite (migraciones al
   arrancar), servido de estaticos y conector de precios desacoplado (`PriceProvider`).
   **Embebe el reconocedor**: `/api/scan` hace deteccion + embedding + OCR + busqueda.
-- **core/recognizer (Rust):** nucleo de inferencia compartido (escritorio y futuro
-  Android). Detector por recorte (bounding box), embedder MobileCLIP via ONNX Runtime,
+- **core/recognizer (Rust):** nucleo de inferencia compartido (escritorio y Android).
+  Detector por recorte (bounding box), embedder MobileCLIP via ONNX Runtime,
   OCR via `ocrs`/`rten` e indice de similitud coseno en Rust puro.
 - **Ingesta (Python, offline):** descarga el catalogo e imagenes de TCGdex a SQLite y
   prepara la lista de cartas; un binario Rust (`build_index`) calcula el indice
@@ -82,8 +85,8 @@ flowchart TB
 PokemonCardDetector/
 ├── apps/
 │   ├── web/             # Cliente web (Vite + React), i18n ES/EN, dev en :5173
-│   └── desktop/         # App Tauri 2 (escritorio). Arranca la API como sidecar
-│       └── src-tauri/   #   lib.rs (spawn/kill del sidecar) + tauri.conf.json (bundle)
+│   └── desktop/         # App Tauri 2 (escritorio + Android). Sidecar en escritorio,
+│       └── src-tauri/   #   API en proceso en Android. lib.rs, tauri.conf.json, gen/android
 ├── core/
 │   └── recognizer/      # Nucleo de inferencia en Rust (deteccion, MobileCLIP, OCR, busqueda)
 │       └── src/bin/build_index.rs   # Construye el indice MobileCLIP del catalogo
@@ -152,6 +155,39 @@ cd apps/desktop; npm install; npm run tauri build
 Genera el ejecutable portable y el instalador NSIS (`CardLens_..._x64-setup.exe`) en
 `apps/desktop/src-tauri/target/release/`. Detalles y notas de Android en
 [`apps/desktop/README.md`](apps/desktop/README.md).
+
+## App Android (on-device)
+
+La **misma** app Tauri corre en Android con reconocimiento 100% on-device (sin
+servidor): la API axum se ejecuta **en proceso** y los modelos/indice/DB viajan dentro
+de la APK y se extraen al almacenamiento privado en el primer arranque. Requisitos:
+Android SDK (plataforma 34+, build-tools, platform-tools), **NDK r26+**, JDK 17,
+`cargo-ndk` y los targets Rust de Android. Variables de entorno: `ANDROID_HOME`,
+`NDK_HOME`, `JAVA_HOME`.
+
+```powershell
+# 1) targets Rust de Android (una vez) + cargo-ndk
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+cargo install cargo-ndk
+
+# 2) prepara los recursos nativos/pesados de la APK (libonnxruntime.so + modelos/indice/DB)
+#    Necesita runtime/ort/android/<abi>/libonnxruntime.so (extraido del AAR
+#    com.microsoft.onnxruntime:onnxruntime-android) y los modelos/indice/DB (ver Quickstart).
+powershell -File scripts/stage-android-resources.ps1 -Abis arm64-v8a
+
+# 3) compila la APK e instala en el dispositivo/emulador
+cd apps/desktop
+npm run tauri -- android build --debug --apk --target aarch64
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb install -r src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
+```
+
+El proyecto Gradle (`src-tauri/gen/android`) esta versionado con sus personalizaciones
+(permiso de camara, `noCompress` para los assets grandes, y `MainActivity` que extrae
+los recursos en el primer arranque). La `libonnxruntime.so` oficial se carga
+**dinamicamente** en runtime (no se enlaza en compilacion). Para publicar en release
+hacen falta firma y, en ABIs de 64 bits, alineacion de paginas a 16 KB (el NDK r28+ la
+aplica por defecto; con r26/r27 hay que pasar `-Wl,-z,max-page-size=16384`).
 
 ## Configuracion
 
