@@ -9,7 +9,7 @@ use crate::models::{Card, Paginated, CARD_SELECT};
 use crate::AppState;
 
 const DEFAULT_PAGE_SIZE: i64 = 20;
-const MAX_PAGE_SIZE: i64 = 100;
+const MAX_PAGE_SIZE: i64 = 200;
 
 #[derive(Debug, Deserialize)]
 pub struct CardsQuery {

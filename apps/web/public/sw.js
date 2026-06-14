@@ -1,70 +1,31 @@
 /*
- * Service worker de la PWA.
- * Estrategia:
- *  - Shell estatico (mismo origen): cache-first con relleno de cache en caliente.
- *  - /api, /images y /scans (o cualquier otro origen): siempre red, sin cache.
- *  - Navegaciones sin red: fallback a /index.html cacheado.
+ * Service worker AUTODESTRUCTIVO.
+ *
+ * La app se distribuye empaquetada (Tauri escritorio/Android): no necesita
+ * cache offline. Versiones anteriores registraban un SW que cacheaba el shell
+ * (cache-first) y, al actualizar, mostraba la version ANTIGUA de la pagina.
+ *
+ * Este SW reemplaza a aquel: no intercepta peticiones (sin handler de fetch),
+ * borra TODAS las caches, se desregistra y recarga las ventanas para que se
+ * sirva la version nueva. Asi los usuarios que vienen de una version con SW
+ * quedan limpios en cuanto el navegador comprueba /sw.js.
  */
-const CACHE_NAME = 'pcd-shell-v1';
-const SHELL_URLS = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
-
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_URLS))
-      .then(() => self.skipWaiting())
-  );
-});
+self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-      )
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  const url = new URL(request.url);
-  const isSameOrigin = url.origin === self.location.origin;
-  const isDynamic =
-    url.pathname.startsWith('/api') ||
-    url.pathname.startsWith('/images') ||
-    url.pathname.startsWith('/scans');
-
-  // API e imagenes dinamicas (y cualquier otro origen): solo red, nunca cache.
-  if (!isSameOrigin || isDynamic) {
-    return;
-  }
-
-  // Navegaciones: red primero con fallback al shell cacheado.
-  if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/index.html')));
-    return;
-  }
-
-  // Estaticos del shell: cache-first.
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+    (async () => {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+        await self.registration.unregister();
+        const clients = await self.clients.matchAll({ type: 'window' });
+        for (const client of clients) {
+          client.navigate(client.url);
         }
-        return response;
-      });
-    })
+      } catch (error) {
+        // best-effort: si algo falla, al menos no cacheamos nada (sin fetch handler).
+      }
+    })()
   );
 });

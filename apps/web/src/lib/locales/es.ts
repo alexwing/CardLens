@@ -82,6 +82,7 @@ const es = {
   'card.note.saved': 'Nota guardada ✓',
   'card.note.error': 'No se pudo guardar la nota. Inténtalo de nuevo.',
   'card.note.addToCollection': 'Añade esta carta a tu colección para poder anotarla.',
+  'card.addToCollectionBtn': 'Añadir a la colección',
 
   // Buscador de cartas
   'search.title': 'Buscar cartas',
@@ -91,7 +92,8 @@ const es = {
   'search.searching': 'Buscando…',
   'search.empty': 'Sin resultados para «{q}».',
   'search.error': 'No se pudo buscar. Comprueba que la API está en marcha.',
-  'search.resultsHint': 'Se muestran hasta 10 resultados.',
+  'search.show': 'Resultados:',
+  'search.resultsHint': 'Se muestran hasta {n} resultados.',
 
   // Coleccion
   'collection.title': 'Mi colección',

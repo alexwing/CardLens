@@ -14,6 +14,7 @@ type SearchState = 'idle' | 'searching' | 'done' | 'error';
 export default function SearchPage() {
   const { t } = useT();
   const [query, setQuery] = useState('');
+  const [pageSize, setPageSize] = useState(10);
   const [results, setResults] = useState<Card[] | null>(null);
   const [state, setState] = useState<SearchState>('idle');
   // Identifica la peticion en curso para descartar respuestas obsoletas.
@@ -29,7 +30,7 @@ export default function SearchPage() {
     const myId = ++reqId.current;
     setState('searching');
     const handle = setTimeout(() => {
-      getCards({ q, page_size: 10 })
+      getCards({ q, page_size: pageSize })
         .then((res) => {
           if (myId !== reqId.current) return;
           setResults(res.items);
@@ -41,7 +42,7 @@ export default function SearchPage() {
         });
     }, 250);
     return () => clearTimeout(handle);
-  }, [query]);
+  }, [query, pageSize]);
 
   const trimmed = query.trim();
 
@@ -62,6 +63,17 @@ export default function SearchPage() {
         // eslint-disable-next-line jsx-a11y/no-autofocus
         autoFocus
       />
+
+      <div className="search-controls">
+        <label className="search-pagesize">
+          {t('search.show')}
+          <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
+            <option value={10}>10</option>
+            <option value={100}>100</option>
+            <option value={200}>200</option>
+          </select>
+        </label>
+      </div>
 
       {trimmed.length > 0 && trimmed.length < 2 && <p className="hint">{t('search.minChars')}</p>}
       {state === 'searching' && <p className="hint">{t('search.searching')}</p>}
@@ -102,7 +114,7 @@ export default function SearchPage() {
               </li>
             ))}
           </ul>
-          <p className="hint">{t('search.resultsHint')}</p>
+          <p className="hint">{t('search.resultsHint', { n: pageSize })}</p>
         </>
       )}
     </div>

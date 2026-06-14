@@ -84,6 +84,7 @@ const en: Record<TranslationKey, string> = {
   'card.note.saved': 'Note saved ✓',
   'card.note.error': 'Could not save the note. Try again.',
   'card.note.addToCollection': 'Add this card to your collection to take notes on it.',
+  'card.addToCollectionBtn': 'Add to collection',
 
   // Card search
   'search.title': 'Search cards',
@@ -93,7 +94,8 @@ const en: Record<TranslationKey, string> = {
   'search.searching': 'Searching…',
   'search.empty': 'No results for "{q}".',
   'search.error': 'Search failed. Make sure the API is running.',
-  'search.resultsHint': 'Showing up to 10 results.',
+  'search.show': 'Results:',
+  'search.resultsHint': 'Showing up to {n} results.',
 
   // Collection
   'collection.title': 'My collection',

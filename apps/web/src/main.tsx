@@ -17,12 +17,19 @@ createRoot(rootElement).render(
   </StrictMode>
 );
 
-// El service worker solo se registra en produccion para no interferir
-// con el servidor de desarrollo de Vite.
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((error) => {
-      console.warn('No se pudo registrar el service worker:', error);
-    });
-  });
+// La app va empaquetada (Tauri): NO usamos service worker. Un SW de cache
+// provocaba que, al actualizar, se viera la version antigua de la pagina. Aqui
+// desregistramos cualquier SW previo y limpiamos sus caches; ademas el propio
+// /sw.js es autodestructivo para limpiar instalaciones anteriores.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => registrations.forEach((registration) => registration.unregister()))
+    .catch(() => {});
+}
+if (typeof caches !== 'undefined' && typeof caches.keys === 'function') {
+  caches
+    .keys()
+    .then((keys) => keys.forEach((key) => caches.delete(key)))
+    .catch(() => {});
 }

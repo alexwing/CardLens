@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Card, CollectionItem, PriceQuote } from '../lib/types';
-import { getCard, getCollection, getPrices, imageSrc, updateCollectionItem } from '../lib/api';
+import {
+  addToCollection,
+  ApiRequestError,
+  getCard,
+  getCollection,
+  getPrices,
+  imageSrc,
+  updateCollectionItem,
+} from '../lib/api';
 import { intlLocale, useT } from '../lib/i18n';
 
 type NoteState = 'idle' | 'saving' | 'saved' | 'error';
@@ -22,6 +30,7 @@ export default function CardPage() {
   const [collectionItem, setCollectionItem] = useState<CollectionItem | null>(null);
   const [note, setNote] = useState('');
   const [noteState, setNoteState] = useState<NoteState>('idle');
+  const [addState, setAddState] = useState<'idle' | 'saving' | 'error'>('idle');
 
   useEffect(() => {
     if (!id) return;
@@ -89,6 +98,39 @@ export default function CardPage() {
       setNoteState('saved');
     } catch {
       setNoteState('error');
+    }
+  }
+
+  async function addToCol() {
+    if (!card) return;
+    setAddState('saving');
+    try {
+      const item = await addToCollection({
+        card_id: card.id,
+        scan_id: null,
+        quantity: 1,
+        condition: null,
+        lang: card.lang,
+        notes: null,
+      });
+      setCollectionItem(item);
+      setNote(item.notes ?? '');
+      setAddState('idle');
+    } catch (err) {
+      // 409 = ya estaba en la coleccion: recargamos para obtener el item.
+      if (err instanceof ApiRequestError && err.status === 409) {
+        try {
+          const collection = await getCollection();
+          const existing = collection.items.find((entry) => entry.card.id === card.id) ?? null;
+          setCollectionItem(existing);
+          setNote(existing?.notes ?? '');
+          setAddState('idle');
+        } catch {
+          setAddState('error');
+        }
+      } else {
+        setAddState('error');
+      }
     }
   }
 
@@ -214,7 +256,18 @@ export default function CardPage() {
                 </div>
               </>
             ) : (
-              <p className="hint">{t('card.note.addToCollection')}</p>
+              <div className="note-add">
+                <p className="hint">{t('card.note.addToCollection')}</p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => void addToCol()}
+                  disabled={addState === 'saving'}
+                >
+                  {addState === 'saving' ? t('result.saving') : t('card.addToCollectionBtn')}
+                </button>
+                {addState === 'error' && <p className="error-text">{t('result.saveError')}</p>}
+              </div>
             )}
           </section>
         </>
